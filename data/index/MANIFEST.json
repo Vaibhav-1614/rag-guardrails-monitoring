@@ -1,0 +1,159 @@
+{
+  "source_repo": "https://github.com/Vaibhav-1614/rag-eval-platform",
+  "chunk_size": 256,
+  "files": {
+    "AAPL_256.json.gz": {
+      "chunks": 274,
+      "sha256": "b489049bdfcc99e1c033e75205d3f15c0622e5ee3ff7717974de9a77c38177db"
+    },
+    "AAPL_256_bge.npy": {
+      "sha256": "8dea3f7c03c51112479bbacc074edcf7e7b5f601342ed73245bffbd6e0ea5a83"
+    },
+    "MSFT_256.json.gz": {
+      "chunks": 405,
+      "sha256": "047a1f3507ec4f8d9dab9a8e6bbfa1a32b752be2270b80df2bb5b09574600001"
+    },
+    "MSFT_256_bge.npy": {
+      "sha256": "0994b2e3f81c5bc27ac696f3093ac6a98d70bfa906dd6603e3e5847d0f9fe93f"
+    },
+    "GOOGL_256.json.gz": {
+      "chunks": 443,
+      "sha256": "f76be310e000fe45e130704221c9c453a800b1bb005bf567a2351be008916547"
+    },
+    "GOOGL_256_bge.npy": {
+      "sha256": "107ed8a5b34af5642941afcf4b641b42a21e48e25c2eaa9fd955c6739df8c278"
+    },
+    "AMZN_256.json.gz": {
+      "chunks": 377,
+      "sha256": "c9a3ee6cf759197cd1e6e5a6b44240f19f45d71f77d513c5df20f5d91d13ca77"
+    },
+    "AMZN_256_bge.npy": {
+      "sha256": "1fe319c8aa07de419305f78191ecbd105d1ac1167d98a3c7d28c7401ae706c76"
+    },
+    "META_256.json.gz": {
+      "chunks": 704,
+      "sha256": "51dda636a2a9e76e402b30f304fd42c41abb59cb5a14fae30f37ddced7acbc83"
+    },
+    "META_256_bge.npy": {
+      "sha256": "996d3e04fcd43c4a035db16c3daeeb3bb920973d875aabd8b524b9f99331aa65"
+    },
+    "NVDA_256.json.gz": {
+      "chunks": 451,
+      "sha256": "7ea4b0c0e6ec585e3f1abf9dbbd6620a9499fd3f6d895c747f1456347d8fb73f"
+    },
+    "NVDA_256_bge.npy": {
+      "sha256": "ca90f231eda817312906c98e9cc56c3e7e007a789554eeb3cec04cd6dee37cef"
+    },
+    "TSLA_256.json.gz": {
+      "chunks": 547,
+      "sha256": "b2f8dea65cafe7ab191d89e1594a87e1c07f4f67fbd549f8aa24ef337da0f54f"
+    },
+    "TSLA_256_bge.npy": {
+      "sha256": "962bca00449bfb771aa7d3bb3463e1e1ebd3cdc06649f128e46086b877d225d7"
+    },
+    "JPM_256.json.gz": {
+      "chunks": 1475,
+      "sha256": "0c723c916d0ec650e376518a20e0c555cdb36dd47abee9e90f1c6e61e487feaa"
+    },
+    "JPM_256_bge.npy": {
+      "sha256": "331e9f2c100f6a54929b2eb897db92e67a85b5e06c20260f9bb45eb576b58685"
+    },
+    "JNJ_256.json.gz": {
+      "chunks": 560,
+      "sha256": "0f0e78723e09184be21dfe7aefca473d83f93118b3bbbd677e1226107fbffea4"
+    },
+    "JNJ_256_bge.npy": {
+      "sha256": "557cd1cb3f47292c5bdb79530094e6d10a189b42474ff185b2be7978ef31991e"
+    },
+    "XOM_256.json.gz": {
+      "chunks": 533,
+      "sha256": "e7b5772774187959403cd542f66d5a99d2ca9fd21c965a8d6a0080bbdd43383d"
+    },
+    "XOM_256_bge.npy": {
+      "sha256": "cf4347a0f103d61c4219ff65be634b3cd6b1e418f8e924173ea7baa04eb3f01b"
+    }
+  },
+  "source_commit": "582cedaff322425d742845e746205674739c2816",
+  "filings": {
+    "AAPL": {
+      "ticker": "AAPL",
+      "cik": "0000320193",
+      "filingDate": "2025-10-31",
+      "accessionNumber": "0000320193-25-000079",
+      "primaryDocument": "aapl-20250927.htm",
+      "url": "https://www.sec.gov/Archives/edgar/data/320193/000032019325000079/aapl-20250927.htm"
+    },
+    "MSFT": {
+      "ticker": "MSFT",
+      "cik": "0000789019",
+      "filingDate": "2025-07-30",
+      "accessionNumber": "0000950170-25-100235",
+      "primaryDocument": "msft-20250630.htm",
+      "url": "https://www.sec.gov/Archives/edgar/data/789019/000095017025100235/msft-20250630.htm"
+    },
+    "GOOGL": {
+      "ticker": "GOOGL",
+      "cik": "0001652044",
+      "filingDate": "2026-02-05",
+      "accessionNumber": "0001652044-26-000018",
+      "primaryDocument": "goog-20251231.htm",
+      "url": "https://www.sec.gov/Archives/edgar/data/1652044/000165204426000018/goog-20251231.htm"
+    },
+    "AMZN": {
+      "ticker": "AMZN",
+      "cik": "0001018724",
+      "filingDate": "2026-02-06",
+      "accessionNumber": "0001018724-26-000004",
+      "primaryDocument": "amzn-20251231.htm",
+      "url": "https://www.sec.gov/Archives/edgar/data/1018724/000101872426000004/amzn-20251231.htm"
+    },
+    "META": {
+      "ticker": "META",
+      "cik": "0001326801",
+      "filingDate": "2026-01-29",
+      "accessionNumber": "0001628280-26-003942",
+      "primaryDocument": "meta-20251231.htm",
+      "url": "https://www.sec.gov/Archives/edgar/data/1326801/000162828026003942/meta-20251231.htm"
+    },
+    "NVDA": {
+      "ticker": "NVDA",
+      "cik": "0001045810",
+      "filingDate": "2026-02-25",
+      "accessionNumber": "0001045810-26-000021",
+      "primaryDocument": "nvda-20260125.htm",
+      "url": "https://www.sec.gov/Archives/edgar/data/1045810/000104581026000021/nvda-20260125.htm"
+    },
+    "TSLA": {
+      "ticker": "TSLA",
+      "cik": "0001318605",
+      "filingDate": "2026-01-29",
+      "accessionNumber": "0001628280-26-003952",
+      "primaryDocument": "tsla-20251231.htm",
+      "url": "https://www.sec.gov/Archives/edgar/data/1318605/000162828026003952/tsla-20251231.htm"
+    },
+    "JPM": {
+      "ticker": "JPM",
+      "cik": "0000019617",
+      "filingDate": "2026-02-13",
+      "accessionNumber": "0001628280-26-008131",
+      "primaryDocument": "jpm-20251231.htm",
+      "url": "https://www.sec.gov/Archives/edgar/data/19617/000162828026008131/jpm-20251231.htm"
+    },
+    "JNJ": {
+      "ticker": "JNJ",
+      "cik": "0000200406",
+      "filingDate": "2026-02-11",
+      "accessionNumber": "0000200406-26-000016",
+      "primaryDocument": "jnj-20251228.htm",
+      "url": "https://www.sec.gov/Archives/edgar/data/200406/000020040626000016/jnj-20251228.htm"
+    },
+    "XOM": {
+      "ticker": "XOM",
+      "cik": "0000034088",
+      "filingDate": "2026-02-18",
+      "accessionNumber": "0000034088-26-000045",
+      "primaryDocument": "xom-20251231.htm",
+      "url": "https://www.sec.gov/Archives/edgar/data/34088/000003408826000045/xom-20251231.htm"
+    }
+  }
+}

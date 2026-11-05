@@ -1,0 +1,53 @@
+# Drift detector thresholds (design doc §8). Every detector has a minimum sample size so a quiet
+# day can't page anyone; bands compare "today" with the trailing window of daily values.
+window_days: 7            # current window for distribution tests (query, scope, retrieval drift)
+history_days: 28          # daily time series kept for bands and charts
+band_window: 7            # trailing days that define a metric's normal band
+band_k: 3.0               # alert when today is outside mean +/- k * sigma
+min_requests_per_day: 20  # days with fewer requests are shown but never alert
+reference: monitor/reference/v1.npz
+
+query_drift:
+  min_samples: 50
+  c2st_auc: 0.70          # classifier two-sample test: alert when AUC >= this ...
+  c2st_p: 0.001           # ... and p < this
+  mmd_permutations: 200
+emerging_topics:
+  min_cluster_size: 10
+  min_share: 0.05         # of the current window
+  novelty_quantile: 0.95  # novel = farther from the reference than 95% of reference points are from each other
+  min_novel_share: 0.15   # fire when at least this share of the window is novel and a cluster qualifies
+scope_drift:
+  psi: 0.2
+  min_abs_change: 0.08    # out-of-scope rate must move by >= 8 points
+retrieval_drift:
+  psi: 0.2
+  min_samples: 50
+output_drift:
+  metrics:
+    refusal_rate:        { min_abs_change: 0.08, min_std: 0.02 }
+    regeneration_rate:   { min_abs_change: 0.05, min_std: 0.01 }
+    flagged_rate:        { min_abs_change: 0.05, min_std: 0.01 }
+    unsupported_rate:    { min_abs_change: 0.05, min_std: 0.01 }
+    citations_mean:      { min_abs_change: 0.3,  min_std: 0.1 }
+    answer_chars_mean:   { min_abs_change: 60,   min_std: 15 }
+    groundedness_mean:   { min_abs_change: 0.08, min_std: 0.02 }
+guard_drift:
+  z: 4.0
+  ratio: 2.0
+  min_count: 5
+upstream_model_drift:     # nightly golden run against production, independent of PRs
+  min_history: 5
+  k: 3.0
+  metrics:
+    answered_rate:            { min_abs_change: 0.10, min_std: 0.02 }
+    reference_number_recall:  { min_abs_change: 0.15, min_std: 0.03 }
+    citation_coverage_mean:   { min_abs_change: 0.10, min_std: 0.02 }
+    numeric_support_mean:     { min_abs_change: 0.10, min_std: 0.02 }
+    unsupported_answer_rate:  { min_abs_change: 0.10, min_std: 0.02 }
+ops_drift:
+  metrics:
+    latency_p95_ms:      { min_abs_change: 500, min_std: 50 }
+    error_rate:          { min_abs_change: 0.05, min_std: 0.01 }
+    fallback_rate:       { min_abs_change: 0.05, min_std: 0.01 }
+    tokens_per_request:  { min_abs_change: 300, min_std: 50 }

@@ -1,0 +1,117 @@
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PYTHONPATH: src:.
+
+jobs:
+  # Guard evals need no LLM calls (rules, local models, extractive answers), so they run on every PR.
+  test-and-guard-gates:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements*.txt
+      - uses: actions/cache@v4
+        with:
+          path: models
+          key: lsa-${{ hashFiles('data/index/MANIFEST.json', 'src/rag/embedder.py') }}
+      - run: pip install -r requirements-dev.txt
+      - run: ruff check .
+      - run: pytest
+      - name: Guard eval + CI gates
+        run: python eval/run_guard_eval.py --config configs/guards/v2.yaml --gates eval/gates.yaml --no-plots --out eval/results/ci
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: guard-eval
+          path: eval/results/ci
+
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      generation: ${{ steps.filter.outputs.generation }}
+      monitor: ${{ steps.filter.outputs.monitor }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            generation:
+              - 'src/rag/prompts.py'
+              - 'src/rag/llm.py'
+              - 'src/guards/**'
+              - 'configs/**'
+              - 'eval/redteam/hallucination_bait.jsonl'
+              - 'eval/redteam/indirect.jsonl'
+            monitor:
+              - 'monitor/**'
+              - 'configs/monitoring.yaml'
+
+  # Hallucination-bait and indirect-injection sets need real generation: doc 01's conditional rule
+  # (only when generation-related files change, and only when an LLM key is configured).
+  generation-eval:
+    needs: [test-and-guard-gates, changes]
+    if: needs.changes.outputs.generation == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+      GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12", cache: pip }
+      - run: pip install -r requirements-dev.txt
+      - name: Guard eval with LLM generation
+        run: |
+          if [ -z "$GOOGLE_API_KEY$GROQ_API_KEY" ]; then echo "No LLM key configured; skipping."; exit 0; fi
+          python eval/run_guard_eval.py --generation llm --config configs/guards/v2.yaml --gates eval/gates.yaml --no-plots --out eval/results/llm
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: { name: guard-eval-llm, path: eval/results/llm, if-no-files-found: ignore }
+
+  # Drift detectors must still fire on their scenarios whenever monitoring code changes.
+  drift-validation:
+    needs: [changes]
+    if: needs.changes.outputs.monitor == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12", cache: pip }
+      - run: pip install -r requirements-dev.txt
+      - run: python -m monitor.validate_detectors
+
+  # Model-backed guards (bge, DeBERTa injection classifier, NLI cross-encoder, spaCy NER). Informational
+  # until their numbers are reviewed; run on demand.
+  ml-guards:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12", cache: pip }
+      - uses: actions/cache@v4
+        with: { path: ~/.cache/huggingface, key: hf-${{ hashFiles('configs/guards/v2.yaml') }} }
+      - run: pip install -r requirements-dev.txt -r requirements-ml.txt && python -m spacy download en_core_web_sm
+      - run: python eval/run_guard_eval.py --config configs/guards/v2.yaml --gates eval/gates.yaml --no-plots --out eval/results/ml
+        continue-on-error: true
+      - uses: actions/upload-artifact@v4
+        with: { name: guard-eval-ml, path: eval/results/ml }

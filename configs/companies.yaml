@@ -1,0 +1,44 @@
+# Companies whose latest 10-K is in the corpus. Aliases are matched case-insensitively
+# on word boundaries; tickers are matched only when written in upper case. Subsidiaries
+# route a question to the parent's filing but stay in the query as retrieval terms.
+covered:
+  AAPL: { name: Apple, aliases: [apple, apple inc] }
+  MSFT: { name: Microsoft, aliases: [microsoft], subsidiaries: [linkedin, github, activision blizzard] }
+  GOOGL: { name: Alphabet, aliases: [alphabet, google, goog], subsidiaries: [youtube] }
+  AMZN: { name: Amazon, aliases: [amazon, amazon.com], subsidiaries: [aws, amazon web services] }
+  META: { name: Meta Platforms, aliases: [meta, meta platforms, facebook], subsidiaries: [instagram, whatsapp] }
+  NVDA: { name: NVIDIA, aliases: [nvidia] }
+  TSLA: { name: Tesla, aliases: [tesla] }
+  JPM: { name: JPMorgan Chase, aliases: [jpmorgan, jp morgan, jpmorgan chase, jpmc, j.p. morgan] }
+  JNJ: { name: Johnson & Johnson, aliases: [johnson & johnson, johnson and johnson, "j&j", jnj] }
+  XOM: { name: Exxon Mobil, aliases: [exxon, exxonmobil, exxon mobil] }
+
+# Well-known companies that are NOT in the corpus. A question that names one of these and
+# none of the covered companies gets the specific "this service covers ..." refusal.
+# Ambiguous tickers (C, V, F, T, MA, MS, X, ...) and names that are also common words
+# (ups, square, 3m) are deliberately left out of the name list.
+other:
+  names: [
+    netflix, coca-cola, coca cola, pepsico, pepsi, walmart, costco, target corporation, home depot,
+    oracle, ibm, intel, amd, advanced micro devices, salesforce, adobe, cisco, qualcomm, broadcom,
+    texas instruments, micron, dell, hewlett packard, hp inc, palantir, snowflake, servicenow, workday,
+    shopify, zoom video, uber, lyft, airbnb, doordash, spotify, snap inc, snapchat, pinterest, reddit,
+    paypal, block inc, visa inc, mastercard, american express, bank of america, wells fargo,
+    goldman sachs, morgan stanley, citigroup, citibank, berkshire hathaway, blackrock, charles schwab,
+    pfizer, merck, eli lilly, abbvie, moderna, amgen, bristol-myers squibb, bristol myers, gilead,
+    unitedhealth, cvs health, novartis, roche, astrazeneca, novo nordisk, chevron, conocophillips,
+    shell plc, royal dutch shell, bp plc, totalenergies, boeing, airbus, lockheed martin, raytheon,
+    general electric, general motors, ford motor, toyota, volkswagen, bmw, mercedes-benz, rivian,
+    lucid motors, byd, disney, walt disney, comcast, warner bros, paramount global, verizon, at&t,
+    t-mobile, starbucks, mcdonald's, mcdonalds, nike, procter & gamble, procter and gamble,
+    unilever, nestle, nestlé, caterpillar, honeywell, fedex, alibaba, tencent, baidu,
+    samsung, sony, tsmc, taiwan semiconductor, asml, sap se, siemens, arm holdings, openai, anthropic,
+    twitter, electronic arts, nintendo, ebay, etsy, zillow
+  ]
+  tickers: [
+    NFLX, KO, PEP, WMT, COST, HD, TGT, ORCL, IBM, INTC, AMD, CRM, ADBE, CSCO, QCOM, AVGO, TXN, MU,
+    PLTR, SNOW, NOW, SHOP, UBER, LYFT, ABNB, DASH, SPOT, SNAP, PINS, RDDT, PYPL, AXP, BAC, WFC, GS,
+    BRK, BLK, SCHW, PFE, MRK, LLY, ABBV, MRNA, AMGN, BMY, GILD, UNH, CVS, NVS, AZN, NVO, CVX, COP,
+    BP, BA, LMT, RTX, GE, GM, TM, RIVN, LCID, NIO, DIS, CMCSA, VZ, TMUS, SBUX, MCD, NKE, PG, CAT,
+    MMM, HON, UPS, FDX, BABA, BIDU, TSM, ASML, SAP, ARM, EBAY, ETSY
+  ]

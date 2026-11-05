@@ -1,0 +1,507 @@
+{
+ "ok": true,
+ "reference": "golden set (74) + 7 days of simulated baseline traffic (420 requests, seed 100, 2026-09-01..2026-09-07)",
+ "per_day": 60,
+ "days": 14,
+ "embedder": "lsa",
+ "results": {
+  "baseline": {
+   "fired": [],
+   "first_night": {},
+   "expected": [],
+   "onset_day": 99,
+   "false_alarms_before_onset": [],
+   "missing": [],
+   "requests": 840,
+   "alerts": [],
+   "nightly_runs": [
+    {
+     "as_of": "2026-10-08",
+     "day": 7,
+     "fired": []
+    },
+    {
+     "as_of": "2026-10-09",
+     "day": 8,
+     "fired": []
+    },
+    {
+     "as_of": "2026-10-10",
+     "day": 9,
+     "fired": []
+    },
+    {
+     "as_of": "2026-10-11",
+     "day": 10,
+     "fired": []
+    },
+    {
+     "as_of": "2026-10-12",
+     "day": 11,
+     "fired": []
+    },
+    {
+     "as_of": "2026-10-13",
+     "day": 12,
+     "fired": []
+    },
+    {
+     "as_of": "2026-10-14",
+     "day": 13,
+     "fired": []
+    }
+   ],
+   "nightly_false_alarms": 0
+  },
+  "topic_shift": {
+   "fired": [
+    "emerging_topics",
+    "guard_drift",
+    "output_drift",
+    "query_drift",
+    "scope_drift"
+   ],
+   "first_night": {
+    "guard_drift": 7,
+    "output_drift": 7,
+    "scope_drift": 7,
+    "emerging_topics": 11,
+    "query_drift": 13
+   },
+   "expected": [
+    "query_drift",
+    "scope_drift"
+   ],
+   "onset_day": 7,
+   "false_alarms_before_onset": [],
+   "missing": [],
+   "requests": 840,
+   "alerts": [
+    {
+     "detector": "scope_drift",
+     "metric": "out_of_scope_rate",
+     "value": 0.069,
+     "threshold": "PSI > 0.2 and |change| >= 0.08, or outside band",
+     "day": 7
+    },
+    {
+     "detector": "output_drift",
+     "metric": "refusal_rate",
+     "value": 0.5,
+     "threshold": "band [0.082, 0.418]",
+     "day": 7
+    },
+    {
+     "detector": "output_drift",
+     "metric": "citations_mean",
+     "value": 2.4667,
+     "threshold": "band [2.473, 3.073]",
+     "day": 7
+    },
+    {
+     "detector": "guard_drift",
+     "metric": "scope_trigger_rate",
+     "value": 0.2,
+     "threshold": "z >= 4.0 and >= 2.0x baseline 0.0405",
+     "day": 7
+    },
+    {
+     "detector": "emerging_topics",
+     "metric": "novel_share",
+     "value": 0.219,
+     "threshold": ">= 0.15",
+     "day": 11
+    },
+    {
+     "detector": "query_drift",
+     "metric": "c2st_auc",
+     "value": 0.7106,
+     "threshold": ">= 0.7",
+     "day": 13
+    }
+   ],
+   "nightly_runs": [
+    {
+     "as_of": "2026-10-08",
+     "day": 7,
+     "fired": [
+      "guard_drift",
+      "output_drift",
+      "scope_drift"
+     ]
+    },
+    {
+     "as_of": "2026-10-09",
+     "day": 8,
+     "fired": [
+      "guard_drift",
+      "output_drift",
+      "scope_drift"
+     ]
+    },
+    {
+     "as_of": "2026-10-10",
+     "day": 9,
+     "fired": [
+      "guard_drift",
+      "scope_drift"
+     ]
+    },
+    {
+     "as_of": "2026-10-11",
+     "day": 10,
+     "fired": [
+      "guard_drift",
+      "output_drift",
+      "scope_drift"
+     ]
+    },
+    {
+     "as_of": "2026-10-12",
+     "day": 11,
+     "fired": [
+      "emerging_topics",
+      "guard_drift",
+      "scope_drift"
+     ]
+    },
+    {
+     "as_of": "2026-10-13",
+     "day": 12,
+     "fired": [
+      "emerging_topics",
+      "scope_drift"
+     ]
+    },
+    {
+     "as_of": "2026-10-14",
+     "day": 13,
+     "fired": [
+      "emerging_topics",
+      "query_drift",
+      "scope_drift"
+     ]
+    }
+   ]
+  },
+  "attack_wave": {
+   "fired": [
+    "guard_drift",
+    "output_drift",
+    "scope_drift"
+   ],
+   "first_night": {
+    "guard_drift": 13,
+    "output_drift": 13,
+    "scope_drift": 13
+   },
+   "expected": [
+    "guard_drift"
+   ],
+   "onset_day": 13,
+   "false_alarms_before_onset": [],
+   "missing": [],
+   "requests": 840,
+   "alerts": [
+    {
+     "detector": "scope_drift",
+     "metric": "out_of_scope_rate",
+     "value": 0.0667,
+     "threshold": "PSI > 0.2 and |change| >= 0.08, or outside band",
+     "day": 13
+    },
+    {
+     "detector": "output_drift",
+     "metric": "refusal_rate",
+     "value": 0.4833,
+     "threshold": "band [0.034, 0.333]",
+     "day": 13
+    },
+    {
+     "detector": "output_drift",
+     "metric": "answer_chars_mean",
+     "value": 489.7097,
+     "threshold": "band [503.818, 603.207]",
+     "day": 13
+    },
+    {
+     "detector": "guard_drift",
+     "metric": "prompt_injection_trigger_rate",
+     "value": 0.35,
+     "threshold": "z >= 4.0 and >= 2.0x baseline 0.0167",
+     "day": 13
+    },
+    {
+     "detector": "guard_drift",
+     "metric": "scope_trigger_rate",
+     "value": 0.2667,
+     "threshold": "z >= 4.0 and >= 2.0x baseline 0.0333",
+     "day": 13
+    }
+   ],
+   "nightly_runs": [
+    {
+     "as_of": "2026-10-08",
+     "day": 7,
+     "fired": []
+    },
+    {
+     "as_of": "2026-10-09",
+     "day": 8,
+     "fired": []
+    },
+    {
+     "as_of": "2026-10-10",
+     "day": 9,
+     "fired": []
+    },
+    {
+     "as_of": "2026-10-11",
+     "day": 10,
+     "fired": []
+    },
+    {
+     "as_of": "2026-10-12",
+     "day": 11,
+     "fired": []
+    },
+    {
+     "as_of": "2026-10-13",
+     "day": 12,
+     "fired": []
+    },
+    {
+     "as_of": "2026-10-14",
+     "day": 13,
+     "fired": [
+      "guard_drift",
+      "output_drift",
+      "scope_drift"
+     ]
+    }
+   ]
+  },
+  "hallucination_pressure": {
+   "fired": [
+    "output_drift",
+    "retrieval_drift"
+   ],
+   "first_night": {
+    "output_drift": 9,
+    "retrieval_drift": 13
+   },
+   "expected": [
+    "output_drift"
+   ],
+   "onset_day": 7,
+   "false_alarms_before_onset": [],
+   "missing": [],
+   "requests": 840,
+   "alerts": [
+    {
+     "detector": "output_drift",
+     "metric": "refusal_rate",
+     "value": 0.4,
+     "threshold": "band [0.070, 0.397]",
+     "day": 9
+    },
+    {
+     "detector": "retrieval_drift",
+     "metric": "retrieval_top_psi",
+     "value": 0.2152,
+     "threshold": "> 0.2",
+     "day": 13
+    }
+   ],
+   "nightly_runs": [
+    {
+     "as_of": "2026-10-08",
+     "day": 7,
+     "fired": []
+    },
+    {
+     "as_of": "2026-10-09",
+     "day": 8,
+     "fired": []
+    },
+    {
+     "as_of": "2026-10-10",
+     "day": 9,
+     "fired": [
+      "output_drift"
+     ]
+    },
+    {
+     "as_of": "2026-10-11",
+     "day": 10,
+     "fired": [
+      "output_drift"
+     ]
+    },
+    {
+     "as_of": "2026-10-12",
+     "day": 11,
+     "fired": []
+    },
+    {
+     "as_of": "2026-10-13",
+     "day": 12,
+     "fired": []
+    },
+    {
+     "as_of": "2026-10-14",
+     "day": 13,
+     "fired": [
+      "retrieval_drift"
+     ]
+    }
+   ]
+  },
+  "model_drift": {
+   "fired": [
+    "guard_drift",
+    "ops_drift",
+    "output_drift",
+    "upstream_model_drift"
+   ],
+   "first_night": {
+    "guard_drift": 9,
+    "ops_drift": 9,
+    "output_drift": 9,
+    "upstream_model_drift": 9
+   },
+   "expected": [
+    "output_drift",
+    "upstream_model_drift"
+   ],
+   "onset_day": 9,
+   "false_alarms_before_onset": [],
+   "missing": [],
+   "requests": 840,
+   "alerts": [
+    {
+     "detector": "output_drift",
+     "metric": "refusal_rate",
+     "value": 0.4,
+     "threshold": "band [0.070, 0.397]",
+     "day": 9
+    },
+    {
+     "detector": "output_drift",
+     "metric": "regeneration_rate",
+     "value": 0.45,
+     "threshold": "band [-0.050, 0.050]",
+     "day": 9
+    },
+    {
+     "detector": "output_drift",
+     "metric": "flagged_rate",
+     "value": 0.1667,
+     "threshold": "band [-0.050, 0.050]",
+     "day": 9
+    },
+    {
+     "detector": "output_drift",
+     "metric": "unsupported_rate",
+     "value": 0.1111,
+     "threshold": "band [-0.050, 0.050]",
+     "day": 9
+    },
+    {
+     "detector": "guard_drift",
+     "metric": "citation_trigger_rate",
+     "value": 0.2833,
+     "threshold": "z >= 4.0 and >= 2.0x baseline 0.0012",
+     "day": 9
+    },
+    {
+     "detector": "guard_drift",
+     "metric": "numeric_grounding_trigger_rate",
+     "value": 0.1667,
+     "threshold": "z >= 4.0 and >= 2.0x baseline 0.0012",
+     "day": 9
+    },
+    {
+     "detector": "upstream_model_drift",
+     "metric": "answered_rate",
+     "value": 0.5667,
+     "threshold": "band [0.902, 1.098]",
+     "day": 9
+    },
+    {
+     "detector": "upstream_model_drift",
+     "metric": "unsupported_answer_rate",
+     "value": 0.1176,
+     "threshold": "band [-0.098, 0.098]",
+     "day": 9
+    },
+    {
+     "detector": "ops_drift",
+     "metric": "fallback_rate",
+     "value": 0.25,
+     "threshold": "band [-0.05, 0.05]",
+     "day": 9
+    }
+   ],
+   "nightly_runs": [
+    {
+     "as_of": "2026-10-08",
+     "day": 7,
+     "fired": []
+    },
+    {
+     "as_of": "2026-10-09",
+     "day": 8,
+     "fired": []
+    },
+    {
+     "as_of": "2026-10-10",
+     "day": 9,
+     "fired": [
+      "guard_drift",
+      "ops_drift",
+      "output_drift",
+      "upstream_model_drift"
+     ]
+    },
+    {
+     "as_of": "2026-10-11",
+     "day": 10,
+     "fired": [
+      "guard_drift",
+      "ops_drift",
+      "output_drift",
+      "upstream_model_drift"
+     ]
+    },
+    {
+     "as_of": "2026-10-12",
+     "day": 11,
+     "fired": [
+      "guard_drift",
+      "ops_drift",
+      "output_drift",
+      "upstream_model_drift"
+     ]
+    },
+    {
+     "as_of": "2026-10-13",
+     "day": 12,
+     "fired": [
+      "guard_drift",
+      "ops_drift",
+      "output_drift",
+      "upstream_model_drift"
+     ]
+    },
+    {
+     "as_of": "2026-10-14",
+     "day": 13,
+     "fired": [
+      "upstream_model_drift"
+     ]
+    }
+   ]
+  }
+ }
+}

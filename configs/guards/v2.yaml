@@ -1,0 +1,32 @@
+# Promoted after measurement (eval/results/guard_eval_v1.* -> guard_eval_v2.*), following the rollout
+# rule: a guard moves to `enforce` only once its false-positive rate on the golden set is measured
+# and acceptable. Thresholds are calibrated values from eval/run_guard_eval.py.
+version: guards/v2
+guards:
+  charset:           { mode: enforce, max_chars: 1000, max_unusual_ratio: 0.3 }
+  pii:               { mode: enforce, action: redact, ner_model: en_core_web_sm, min_score: 0.4 }
+  # 0 false positives on 66 golden + 22 near-miss questions -> enforce
+  prompt_injection:  { mode: enforce, threshold: 0.90, model: protectai/deberta-v3-base-prompt-injection-v2 }
+  # legit min score 0.54 vs off-topic max 0.39 (lsa embedder) -> threshold in the gap, enforce
+  scope:
+    mode: enforce
+    threshold: 0.45
+    unknown_company_mode: enforce
+    by_embedder:
+      bge: { similarity_floor: 0.45, similarity_ceiling: 0.80 }
+  # answerable min top score 0.434; unanswerable/off-topic mostly <= 0.41 (v1's 0.45 refused answerable questions)
+  retrieval_conf:
+    mode: enforce
+    min_top_score: 0.42
+    relevance_floor: 0.30
+    min_chunks: 1
+    by_embedder:
+      bge: { min_top_score: 0.55 }   # starting point; re-run calibration when the bge embedder is active
+  # 0 hits on 5,769 real 10-K chunks after narrowing the "no restrictions" rule -> quarantine whole chunk
+  context_sanitizer: { mode: enforce, threshold: 0.8, strip: chunk }
+  citation:          { mode: enforce, on_fail: regenerate, then: strip_uncited, claims: strict }
+  # precision-aware rounding + 0.05% slack; the doc's 0.5% let wrong-digit figures through (see tolerance sweep)
+  numeric_grounding: { mode: enforce, on_fail: regenerate, then: flag, tolerance: 0.0005 }
+  # stays in shadow mode: only the lexical fallback could be measured offline
+  nli_grounding:     { mode: monitor, threshold: 0.70, lexical_threshold: 0.6, min_grounded_fraction: 0.8, sample_rate: 1.0, model: cross-encoder/nli-deberta-v3-xsmall }
+  advice:            { mode: enforce, action: block }

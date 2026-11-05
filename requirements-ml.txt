@@ -1,0 +1,11 @@
+# Optional model-backed guards (all run on CPU):
+#   - BAAI/bge-small-en-v1.5        query embeddings (dense retrieval, scope, drift)
+#   - prompt-injection classifier   (configs/guards/*.yaml -> prompt_injection.model)
+#   - cross-encoder NLI             (configs/guards/*.yaml -> nli_grounding.model)
+#   - spaCy en_core_web_sm          PERSON entities for Presidio
+# CPU-only PyTorch wheels keep the image small.
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch>=2.2
+transformers>=4.44
+sentence-transformers>=3.0
+# python -m spacy download en_core_web_sm

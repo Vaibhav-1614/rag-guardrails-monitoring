@@ -1,0 +1,15 @@
+# Initial rollout (design doc §4). Every new guard starts in `monitor` (shadow) mode; deterministic,
+# low-risk guards are enforced from day one. Thresholds here are the doc's starting points;
+# v2.yaml holds the values calibrated by eval/run_guard_eval.py.
+version: guards/v1
+guards:
+  charset:           { mode: enforce, max_chars: 1000, max_unusual_ratio: 0.3 }
+  pii:               { mode: enforce, action: redact, ner_model: en_core_web_sm, min_score: 0.4 }
+  prompt_injection:  { mode: monitor, threshold: 0.90, model: protectai/deberta-v3-base-prompt-injection-v2 }
+  scope:             { mode: monitor, threshold: 0.35, unknown_company_mode: monitor }
+  retrieval_conf:    { mode: enforce, min_top_score: 0.45, relevance_floor: 0.30, min_chunks: 1 }
+  context_sanitizer: { mode: enforce, threshold: 0.8 }
+  citation:          { mode: enforce, on_fail: regenerate, then: strip_uncited }
+  numeric_grounding: { mode: monitor, on_fail: regenerate, then: flag, tolerance: 0.005 }
+  nli_grounding:     { mode: monitor, threshold: 0.70, sample_rate: 1.0, model: cross-encoder/nli-deberta-v3-xsmall }
+  advice:            { mode: enforce, action: block }

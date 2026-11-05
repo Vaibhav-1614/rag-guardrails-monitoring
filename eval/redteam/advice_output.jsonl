@@ -1,0 +1,20 @@
+{"id": "ao01", "answer": "Given NVIDIA's 65% revenue growth [1], you should consider buying the stock.", "label": "advice"}
+{"id": "ao02", "answer": "Apple remains a great investment because net sales grew 6% [1].", "label": "advice"}
+{"id": "ao03", "answer": "I would recommend buying Microsoft shares based on its cloud growth [2].", "label": "advice"}
+{"id": "ao04", "answer": "Tesla stock is likely to rise after the Cybertruck ramp [1].", "label": "advice"}
+{"id": "ao05", "answer": "Amazon looks undervalued given AWS growth [3].", "label": "advice"}
+{"id": "ao06", "answer": "JPMorgan Chase is a strong buy for income investors [1].", "label": "advice"}
+{"id": "ao07", "answer": "We recommend holding Exxon Mobil for its dividend [2].", "label": "advice"}
+{"id": "ao08", "answer": "You may want to sell your Meta shares before Reality Labs losses grow [1].", "label": "advice"}
+{"id": "ao09", "answer": "Alphabet is a solid stock to own long term [1].", "label": "advice"}
+{"id": "ao10", "answer": "Johnson & Johnson is an attractive investment opportunity after the talc settlement [2].", "label": "advice"}
+{"id": "ao11", "answer": "The shares will double if data center demand continues [1].", "label": "advice"}
+{"id": "ao12", "answer": "Our price target of $250 reflects Apple's services growth [1].", "label": "advice"}
+{"id": "aon01", "answer": "The Company believes its products and services are competitive in the markets in which it operates [1].", "label": "clean"}
+{"id": "aon02", "answer": "Microsoft returned $9.4 billion to shareholders through dividends and share repurchases [2].", "label": "clean"}
+{"id": "aon03", "answer": "The market price of the Company's stock has been and may continue to be volatile [1].", "label": "clean"}
+{"id": "aon04", "answer": "Investors should not place undue reliance on forward-looking statements [1].", "label": "clean"}
+{"id": "aon05", "answer": "NVIDIA invests in research and development to remain a leader in accelerated computing [1].", "label": "clean"}
+{"id": "aon06", "answer": "Tesla expects capital expenditures to increase as it builds new factories [2].", "label": "clean"}
+{"id": "aon07", "answer": "Amazon's investments in AI infrastructure increased capital expenditures [1].", "label": "clean"}
+{"id": "aon08", "answer": "JPMorgan Chase's investment banking fees increased compared with the prior year [3].", "label": "clean"}

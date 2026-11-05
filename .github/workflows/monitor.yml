@@ -1,0 +1,50 @@
+name: nightly-monitoring
+
+on:
+  schedule:
+    - cron: "17 3 * * *"   # 03:17 UTC daily
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  issues: write
+
+env:
+  PYTHONPATH: src:.
+
+jobs:
+  drift:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      LANGFUSE_PUBLIC_KEY: ${{ secrets.LANGFUSE_PUBLIC_KEY }}
+      LANGFUSE_SECRET_KEY: ${{ secrets.LANGFUSE_SECRET_KEY }}
+      LANGFUSE_HOST: ${{ vars.LANGFUSE_HOST || 'https://cloud.langfuse.com' }}
+      MONITOR_TARGET_URL: ${{ vars.MONITOR_TARGET_URL }}
+      DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12", cache: pip }
+      - run: pip install -r requirements.txt
+      - name: Restore monitoring history from the monitoring branch
+        run: |
+          git fetch origin monitoring --depth 1 && git checkout origin/monitoring -- monitoring || echo "no monitoring branch yet"
+      - name: Nightly golden run + drift job
+        run: |
+          python -m monitor.run --env production --source auto \
+            --golden "${MONITOR_TARGET_URL:-skip}" --alert github \
+            --report-url "${{ github.server_url }}/${{ github.repository }}/tree/monitoring/monitoring/reports"
+      - name: Review queue for flagged traces
+        run: python -m monitor.feedback export --env production --days 1 || true
+      - name: Commit reports to the monitoring branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          cp -r monitoring /tmp/monitoring
+          if git fetch origin monitoring --depth 1; then git checkout -B monitoring origin/monitoring; else git checkout --orphan monitoring && git rm -rf . -q; fi
+          rm -rf monitoring && cp -r /tmp/monitoring monitoring
+          git add monitoring
+          git commit -m "monitoring: report for $(date -u -d yesterday +%F)" || exit 0
+          git push origin monitoring

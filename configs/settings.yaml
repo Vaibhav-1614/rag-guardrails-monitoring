@@ -1,0 +1,42 @@
+# Service settings. Every key can be overridden with an env var named
+# RAG__<SECTION>__<KEY> (e.g. RAG__GENERATION__PROVIDER=gemini).
+
+corpus:
+  index_dir: data/index
+  chunk_size: 256
+
+retrieval:
+  strategy: hybrid          # bm25 | dense | hybrid (weighted RRF)
+  top_k: 5
+  candidate_k: 20
+  rrf_k: 60
+  rrf_weights: { bm25: 1.0, dense: 0.5 }
+  # Absolute relevance score used by the retrieval-confidence gate:
+  # lexical = IDF-weighted share of the question's content terms present in the chunk,
+  # semantic = cosine similarity of query and chunk embeddings.
+  confidence_weights: { lexical: 0.6, semantic: 0.4 }
+
+embedder:
+  backend: auto             # auto | bge | lsa   (auto: bge if sentence-transformers + model load, else lsa)
+  bge_model: BAAI/bge-small-en-v1.5
+  lsa_dims: 256
+  cache_dir: models
+
+generation:
+  provider: auto            # auto | gemini | groq | extractive  (auto: first provider with an API key)
+  fallback_provider: auto   # used when the primary errors, and optionally for regeneration
+  gemini_model: gemini-2.5-flash
+  groq_model: llama-3.3-70b-versatile
+  temperature: 0.0
+  max_output_tokens: 600
+  timeout_s: 60
+
+tracing:
+  backend: auto             # auto | langfuse | local | none (auto: langfuse if keys set, else local)
+  local_dir: data/traces
+  environment: production
+  langfuse_host: https://cloud.langfuse.com
+
+guards_config: configs/guards/v2.yaml
+companies_config: configs/companies.yaml
+pii_allowlist: configs/pii_allowlist.txt
