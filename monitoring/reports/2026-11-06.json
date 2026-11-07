@@ -1,0 +1,100 @@
+{
+ "as_of": "2026-11-06",
+ "env": "production",
+ "window": [
+  "2026-10-31",
+  "2026-11-06"
+ ],
+ "n_window": 0,
+ "n_today": 0,
+ "reference": {
+  "version": "v1",
+  "n": 494,
+  "description": "golden set (74) + 7 days of simulated baseline traffic (420 requests, seed 100, 2026-09-01..2026-09-07)"
+ },
+ "embedder": "lsa",
+ "detectors": {
+  "query_drift": {
+   "fired": false,
+   "status": "insufficient_data",
+   "n": 0
+  },
+  "emerging_topics": {
+   "fired": false,
+   "status": "insufficient_data"
+  },
+  "scope_drift": {
+   "fired": false,
+   "psi": null,
+   "out_of_scope_rate_window": null,
+   "out_of_scope_rate_reference": 0.02857142857142857,
+   "today_band": {
+    "status": "insufficient_data"
+   }
+  },
+  "retrieval_drift": {
+   "fired": false,
+   "status": "insufficient_data",
+   "n": 0
+  },
+  "output_drift": {
+   "fired": false,
+   "metrics": {
+    "refusal_rate": {
+     "status": "insufficient_data"
+    },
+    "regeneration_rate": {
+     "status": "insufficient_data"
+    },
+    "flagged_rate": {
+     "status": "insufficient_data"
+    },
+    "unsupported_rate": {
+     "status": "insufficient_data"
+    },
+    "citations_mean": {
+     "status": "insufficient_data"
+    },
+    "answer_chars_mean": {
+     "status": "insufficient_data"
+    },
+    "groundedness_mean": {
+     "status": "insufficient_data"
+    }
+   },
+   "outside": []
+  },
+  "guard_drift": {
+   "fired": false,
+   "guards": {},
+   "spiking": []
+  },
+  "upstream_model_drift": {
+   "fired": false,
+   "status": "insufficient_history",
+   "runs": 0
+  },
+  "ops_drift": {
+   "fired": false,
+   "metrics": {
+    "latency_p95_ms": {
+     "status": "insufficient_data"
+    },
+    "error_rate": {
+     "status": "insufficient_data"
+    },
+    "fallback_rate": {
+     "status": "insufficient_data"
+    },
+    "tokens_per_request": {
+     "status": "insufficient_data"
+    }
+   },
+   "outside": []
+  }
+ },
+ "alerts": [],
+ "fired": [],
+ "daily": [],
+ "golden": []
+}
