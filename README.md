@@ -19,8 +19,25 @@ and monitoring. `make sync-upstream` moves to the latest upstream commit and re-
 All numbers below were produced by `make eval` and `make drift-validate` in this repo, in **lite mode**: upstream
 retrieval config `v2-bm25` (no re-ranker), rules + Presidio patterns + LSA embeddings + lexical groundedness, and the
 no-LLM answer path (facts-table sentence or quoted passages). The model-backed backends (upstream's re-ranker,
-bge-small, a DeBERTa prompt-injection classifier, an NLI cross-encoder, spaCy NER) are wired into config but **were
-not measured** here; see [Limitations](#limitations-read-these).
+bge-small, a DeBERTa prompt-injection classifier, an NLI cross-encoder, spaCy NER) could not run in the build
+environment; one CI run with them is summarised below. See [Limitations](#limitations-read-these).
+
+### First run with the real models (CI `ml-guards` job, informational)
+
+One run on GitHub Actions with upstream's production config `v2` (re-ranker on), bge, the DeBERTa injection
+classifier, the NLI cross-encoder and spaCy NER. Not yet reviewed or tuned:
+
+| What | Lite mode | With models |
+|---|---|---|
+| Unanswerable golden questions refused | 26 / 28 | **28 / 28** (the re-ranker's evidence score catches the last two) |
+| Answerable golden questions blocked | 0 / 148 | 0 / 148 |
+| Answer check | 61 / 68 | 62 / 68 |
+| PII false positives on golden questions | 0 | **1** (spaCy NER flags a name the allowlist misses; this fails its gate) |
+| NLI groundedness precision | 0.97 (lexical) | **0.60** (the cross-encoder marks 95 good golden answers ungrounded) |
+| Guard overhead p50 / p95 | 22 / 34 ms | **279 / 629 ms** (classifier ~125 ms, NLI ~130 ms; over the 500 ms budget) |
+
+So the re-ranker is worth turning on, the NLI model is not usable at its current threshold (it stays in shadow
+mode), and the spaCy path needs one allowlist fix before it can be enforced.
 
 ### On the upstream golden set (176 questions, dev and held-out test splits)
 
@@ -243,7 +260,7 @@ Raw PII can never enter the eval sets: traces are masked before storage.
 
 - **Only lite backends were measured.** This build environment can't reach the Hugging Face Hub, so upstream's
   re-ranker (its production config `v2`, with evidence-based refusal), bge, the DeBERTa classifier, the NLI model and
-  spaCy NER are untested here. `retrieval.config: auto` picks the re-ranker config when it loads, and the `ml-guards`
+  spaCy NER ran once in CI (table above) and are not tuned. `retrieval.config: auto` picks the re-ranker config when it loads, and the `ml-guards`
   CI job runs these backends on demand. Expect refusal of unanswerable questions to improve with the re-ranker
   (upstream reports 28/28) and latency to rise to about 0.5 s.
 - **No LLM in the loop.** Without API keys, answers come from the no-LLM path, which quotes the filings, so the golden
