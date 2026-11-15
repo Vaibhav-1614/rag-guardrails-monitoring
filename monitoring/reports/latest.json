@@ -1,16 +1,16 @@
 {
- "as_of": "2026-11-13",
+ "as_of": "2026-11-14",
  "env": "production",
  "window": [
-  "2026-11-07",
-  "2026-11-13"
+  "2026-11-08",
+  "2026-11-14"
  ],
  "n_window": 0,
  "n_today": 0,
  "reference": {
-  "version": "v1",
-  "n": 494,
-  "description": "golden set (74) + 7 days of simulated baseline traffic (420 requests, seed 100, 2026-09-01..2026-09-07)"
+  "version": "v2",
+  "n": 596,
+  "description": "golden set (176) + 7 days of simulated baseline traffic (420 requests, seed 100, 2026-09-01..2026-09-07)"
  },
  "embedder": "lsa",
  "detectors": {
@@ -27,7 +27,7 @@
    "fired": false,
    "psi": null,
    "out_of_scope_rate_window": null,
-   "out_of_scope_rate_reference": 0.02857142857142857,
+   "out_of_scope_rate_reference": 0.02142857142857143,
    "today_band": {
     "status": "insufficient_data"
    }
