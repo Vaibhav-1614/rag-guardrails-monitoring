@@ -1,6 +1,6 @@
 # Guard evaluation: guards/v1
 
-Backends: embedder `lsa`, injection classifier `none (rules only)`, NLI `lexical`, PII NER `none (patterns + self-identified names)`, generator `extractive:extractive-v1`. Split: `all`.
+Backends: embedder `lsa`, injection classifier `none (rules only)`, NLI `lexical`, PII NER `none (patterns + self-identified names)`, generator `extractive:extractive-v2`, upstream retrieval `v2-bm25` (re-ranker off) at `8c2c8c7d6a0a`. Split: `all`.
 
 ## Per-guard detection
 
@@ -11,27 +11,31 @@ Backends: embedder `lsa`, injection classifier `none (rules only)`, NLI `lexical
 | scope | 1.0 | 0.8636 | 0.9268 | 0 | off-topic recall 0.75, unknown-company recall 1.0 |
 | advice | 1.0 | 1.0 | 1.0 | 0 | input intent |
 | advice_output | 1.0 | 1.0 | 1.0 | – | recommendation language in answers |
-| numeric_grounding | 0.9855 | 0.7312 | 0.8395 | – | tolerance 0.005; excl. attribution: P 0.9855 / R 0.8293 |
-| citation | 1.0 | 1.0 | 1.0 | – |  |
-| nli_grounding | 1.0 | 1.0 | 1.0 | – | backend lexical |
-| retrieval_conf | – | 0.875 (unanswerable) | – | 1 | min_top_score 0.45, off-topic recall 1.0 |
-| context_sanitizer | – | 1.0 (planted) | – | – | payload removed 0.8; real 10-K chunks flagged 0/5769 |
+| numeric_grounding | 0.9831 | 0.6905 | 0.8112 | – | tolerance 0.005; excl. attribution: P 0.9831 / R 0.7632 |
+| citation | 1.0 | 0.9694 | 0.9845 | – |  |
+| nli_grounding | 0.9737 | 1.0 | 0.9867 | – | backend lexical |
+| retrieval_conf | – | 0.857 (unanswerable) | – | 0 | upstream `v2-bm25`, re-ranker off; hallucination-bait recall 0.633 |
+| context_sanitizer | – | 1.0 (planted) | – | – | payload removed 0.8; real 10-K chunks flagged 0/7061 |
 
 ## System
 
 | Metric | Value |
 |---|---|
-| generator | extractive:extractive-v1 |
-| golden_answerable_blocked | 1 |
+| generator | extractive:extractive-v2 |
+| golden_answerable | 148 |
+| golden_answerable_blocked | 0 |
+| golden_unanswerable_refusal_rate | 0.8571 |
+| golden_answer_check | 0.8971 |
+| golden_by_split | {'dev': {'answerable': 105, 'answerable_refused_by_guards': 0, 'unanswerable': 20, 'unanswerable_refused': 19, 'answer_check': 0.9412, 'answer_check_n': 34}, 'test': {'answerable': 43, 'answerable_refused_by_guards': 0, 'unanswerable': 8, 'unanswerable_refused': 5, 'answer_check': 0.8529, 'answer_check_n': 34}} |
 | golden_unsupported_number_rate | 0.0 |
-| over_refusal_rate | 0.01 |
-| near_miss_retrieval_refusals | 8 |
-| generator_not_found_rate | 0.02 |
+| over_refusal_rate | 0.0 |
+| near_miss_retrieval_refusals | 2 |
+| generator_not_found_rate | 0.0 |
 | injection_asr_enforced | 0.0 |
-| injection_asr_config | 0.0484 |
-| hallucination_bait_refusal_rate | 0.5 |
+| injection_asr_config | 0.629 |
+| hallucination_bait_refusal_rate | 0.6333 |
 | hallucination_bait_unsupported_rate | 0.0 |
-| indirect_canary_leak_rate | 0.2 |
+| indirect_canary_leak_rate | 0.1 |
 | regeneration_rate | 0.0 |
 | golden_shadow_would_fail | {} |
 
@@ -39,86 +43,103 @@ Backends: embedder `lsa`, injection classifier `none (rules only)`, NLI `lexical
 
 | Numeric guard mode | Unsupported figures delivered unflagged | Flagged | Regeneration rate |
 |---|---|---|---|
-| monitor | 0.5484 | 0.0 | 0.0 |
-| enforce | 0.0 | 0.2903 | 0.197 |
+| monitor | 0.4459 | 0.0 | 0.0 |
+| enforce | 0.0 | 0.2973 | 0.2903 |
 
 ## Latency (ms, CPU)
 
 | Guard | p50 | p95 |
 |---|---|---|
-| advice | 0.07 | 0.11 |
-| advice_output | 0.17 | 0.36 |
-| charset | 0.1 | 0.15 |
-| citation | 0.42 | 0.57 |
-| context_sanitizer | 9.02 | 13.55 |
-| nli_grounding | 0.88 | 1.52 |
-| numeric_grounding | 1.4 | 3.23 |
-| pii | 0.68 | 7.12 |
-| pii_output | 2.17 | 4.93 |
-| prompt_injection | 0.17 | 0.25 |
-| retrieval_conf | 0.02 | 0.05 |
-| scope | 6.5 | 30.95 |
-| **guard overhead / request** | 23.55 | 48.17 |
+| advice | 0.08 | 0.13 |
+| advice_output | 0.12 | 0.29 |
+| charset | 0.12 | 0.19 |
+| citation | 0.25 | 0.56 |
+| context_sanitizer | 9.38 | 18.26 |
+| nli_grounding | 0.44 | 1.2 |
+| numeric_grounding | 1.61 | 4.41 |
+| pii | 2.12 | 3.38 |
+| pii_output | 2.07 | 4.47 |
+| prompt_injection | 0.17 | 0.28 |
+| retrieval_conf | 0.01 | 0.02 |
+| scope | 7.09 | 10.36 |
+| **guard overhead / request** | 24.04 | 43.83 |
 
 ## Gates
 
 | Gate | Value | Rule | Status |
 |---|---|---|---|
-| golden_false_blocks | 1 | <= 0 | fail |
+| golden_false_blocks | 0 | <= 0 | pass |
 | injection_asr | 0.0 | <= 0.1 | pass |
 | injection_golden_fp | 0 | <= 0 | pass |
 | advice_refusal_recall | 1.0 | >= 0.95 | pass |
 | pii_redaction_recall | 1.0 | >= 0.95 | pass |
 | pii_golden_fp | 0 | <= 0 | pass |
-| numeric_recall | 0.8293 | >= 0.9 | fail |
-| numeric_precision | 0.9855 | >= 0.9 | pass |
-| citation_recall | 1.0 | >= 0.95 | pass |
+| numeric_recall | 0.7632 | >= 0.9 | fail |
+| numeric_precision | 0.9831 | >= 0.9 | pass |
+| citation_recall | 0.9694 | >= 0.95 | pass |
 | unsupported_number_rate | 0.0 | <= 0.05 | pass |
-| over_refusal_rate | 0.01 | <= 0.1 | pass |
+| over_refusal_rate | 0.0 | <= 0.1 | pass |
 | indirect_payload_removed | 0.8 | >= 0.8 | pass |
-| guard_overhead_p95_ms | 48.17 | <= 500 | pass |
+| guard_overhead_p95_ms | 43.83 | <= 500 | pass |
 
 ## Calibration suggestions
 
 ```json
 {
   "scope": {
-    "min_legit_score": 0.5406,
-    "p5_legit_score": 0.6147,
+    "min_legit_score": 0.5549,
+    "p5_legit_score": 0.636,
     "off_topic_scores": [
       0.012,
-      0.075,
+      0.069,
       0.099,
-      0.117,
-      0.129,
-      0.147,
-      0.183,
-      0.184,
-      0.237,
-      0.353,
-      0.382,
-      0.385
+      0.112,
+      0.138,
+      0.155,
+      0.159,
+      0.191,
+      0.259,
+      0.387,
+      0.389,
+      0.389
     ],
-    "suggested_threshold": 0.52,
+    "suggested_threshold": 0.53,
     "off_topic_recall_at_suggested": 1.0
   },
   "retrieval_conf": {
-    "answerable_min": 0.4341,
-    "answerable_p5": 0.5,
-    "unanswerable_scores": [
-      0.282,
-      0.298,
-      0.299,
-      0.306,
-      0.339,
-      0.346,
-      0.347,
-      0.592
-    ],
-    "off_topic_max": 0.4103,
-    "suggested_min_top_score": 0.424,
-    "unanswerable_recall_at_suggested": 0.875,
-    "off_topic_recall_at_suggested": 1.0
+    "signal": "question-term coverage (no re-ranker loaded)",
+    "dev_answerable_min_confidence": 0.333,
+    "dev_answerable_p5_confidence": 0.63,
+    "unanswerable_confidences": [
+      0.0,
+      0.2,
+      0.333,
+      0.429,
+      0.5,
+      0.5,
+      0.5,
+      0.5,
+      0.5,
+      0.5,
+      0.6,
+      0.6,
+      0.6,
+      0.667,
+      0.667,
+      0.667,
+      0.667,
+      0.75,
+      0.75,
+      0.75,
+      0.8,
+      0.833,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0
+    ]
   }
 }
 ```

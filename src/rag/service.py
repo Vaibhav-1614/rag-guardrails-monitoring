@@ -92,7 +92,7 @@ class RAGService:
         corpus = load_corpus(settings)
         embedder = get_embedder(settings)
         registry = get_registry(settings)
-        retriever = Retriever(corpus, embedder, registry, settings)
+        retriever = Retriever(settings)
         pipeline = GuardPipeline.from_file(
             guards_config or settings.get("guards_config", "configs/guards/v2.yaml"), corpus, embedder, registry,
             allowlist_path=settings.get("pii_allowlist", "configs/pii_allowlist.txt"), overrides=guard_overrides,
@@ -132,19 +132,20 @@ class RAGService:
             resp.answer, resp.status, resp.refusal_reason = inp.refusal or prompts.POLICY_REFUSAL, "refused", inp.blocked_by
             return self._finish(resp, ctx, guard_results, None, lat, t0, environment, timestamp, trace, tags)
 
-        # 2. retrieval (reuses the query vector the scope guard computed)
+        # 2. retrieval: the upstream pipeline routes companies, looks up the facts table, searches the
+        #    index and decides answerability
         query = ctx.effective_question
-        search_query = search_text(query)
-        qvec = ctx.cache.get(("qvec", query)) if search_query == query else None
-        retrieval = self.c.retriever.retrieve(search_query, tickers or ctx.tickers or None, query_vec=qvec)
+        retrieval = self.c.retriever.retrieve(search_text(query), tickers or None)
         lat["retrieval"] = retrieval.latency_ms
         if replace_chunks is not None:
             retrieval.chunks = [self._synthetic(c, i) for i, c in enumerate(replace_chunks, 1)]
         elif extra_chunks:
             planted = [self._synthetic(c, i) for i, c in enumerate(extra_chunks, 1)]
             retrieval.chunks = (planted + retrieval.chunks)[: max(len(retrieval.chunks), len(planted))]
+            retrieval.direct_answer = None
         ctx.retrieval = retrieval
-        ctx.chunks = [{"chunk_id": c.chunk_id, "ticker": c.ticker, "section": c.section, "text": c.text} for c in retrieval.chunks]
+        ctx.tickers = retrieval.tickers or ctx.tickers
+        ctx.chunks = [c.as_chunk() for c in retrieval.chunks]
 
         # 3. retrieval-confidence gate
         rc = p.run_retrieval(ctx)
@@ -168,7 +169,8 @@ class RAGService:
             user = prompts.build_user_prompt(query, ctx.chunks)
             system = self.system_prompt + (prompts.strict_suffix(reasons) if attempt else "")
             t = time.perf_counter()
-            result = gen.generate(GenerationRequest(query, ctx.chunks, system, user, strict=bool(attempt)))
+            meta = {"direct_answer": retrieval.direct_answer, "scorer": self.c.retriever.scorer}
+            result = gen.generate(GenerationRequest(query, ctx.chunks, system, user, strict=bool(attempt), meta=meta))
             lat[f"generation_{attempt}"] = (time.perf_counter() - t) * 1000
             resp.provider, resp.model = result.provider, result.model
             resp.latency_ms.setdefault("tokens_in", 0)
@@ -205,8 +207,8 @@ class RAGService:
     @staticmethod
     def _synthetic(c: dict, i: int) -> RetrievedChunk:
         return RetrievedChunk(chunk_id=c.get("chunk_id", f"SYNTH_{i}"), ticker=c.get("ticker", "AAPL"),
-                              section=c.get("section", "Item 7"), text=c["text"], rank=i, bm25=0.0, dense=0.0,
-                              lexical=1.0, relevance=1.0, synthetic=True)
+                              section=c.get("section", "Item 7"), text=c["text"], rank=i, relevance=1.0,
+                              kind=c.get("kind", "text"), synthetic=True)
 
     # ------------------------------------------------------------------ response + trace
     def _finish(self, resp: AskResponse, ctx: GuardContext, results: list[GuardResult], retrieval, lat: dict,
@@ -265,9 +267,10 @@ class RAGService:
             "injection_rules": [r["rule"] for r in inj.detail.get("rules", [])][:5] if inj else [],
         }
         if retrieval is not None:
-            metadata["retrieval"] = {"top_score": round(retrieval.top_score, 4), "embedder": retrieval.embedder,
+            metadata["retrieval"] = {"confidence": round(retrieval.confidence, 4), "version": retrieval.version,
+                                     "reason": retrieval.reason, "facts_mode": retrieval.facts_mode,
                                      "chunk_ids": [c.chunk_id for c in retrieval.chunks],
-                                     "scores": [round(c.relevance, 4) for c in retrieval.chunks]}
+                                     "kinds": [c.kind for c in retrieval.chunks]}
         scores: dict[str, float] = {}
         if scope is not None and scope.score is not None:
             scores["scope"] = float(scope.score)

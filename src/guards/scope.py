@@ -79,6 +79,7 @@ class ScopeGuard(BaseGuard):
         self.w_co = float(w.get("company", 0.15))
         self.sim_floor = float(self.config.get("similarity_floor", 0.10))
         self.sim_ceil = float(self.config.get("similarity_ceiling", 0.50))
+        self.metric_domain = float(self.config.get("metric_domain", 0.8))
         self.domain = DomainModel(corpus, registry.all_alias_tokens())
 
     @cached_property
@@ -102,6 +103,19 @@ class ScopeGuard(BaseGuard):
             ctx.cache[key] = self.embedder.encode([ctx.effective_question])[0]
         return ctx.cache[key]
 
+    @staticmethod
+    def metric_of(text: str) -> str | None:
+        """The company-wide metric the upstream facts table recognises in the question, if any."""
+        try:
+            from rag.upstream import ensure_importable
+
+            ensure_importable()
+            from rag_service.facts import detect_metric
+
+            return detect_metric(text)
+        except Exception:
+            return None
+
     def evaluate(self, ctx: GuardContext) -> tuple[bool, float | None, dict[str, Any]]:
         text = ctx.question
         mentions = self.registry.detect(text)
@@ -111,6 +125,9 @@ class ScopeGuard(BaseGuard):
         best = int(np.argmax(sims))
         sim = float(sims[best])
         sim_norm = float(np.clip((sim - self.sim_floor) / max(self.sim_ceil - self.sim_floor, 1e-6), 0.0, 1.0))
+        metric = self.metric_of(text)
+        if metric:  # a recognised financial metric ("headcount", "revenue") is in-domain whatever the wording
+            dom = max(dom, self.metric_domain)
         score = self.w_dom * dom + self.w_sim * sim_norm + self.w_co * (1.0 if mentions.covered else 0.0)
         reason = None
         if mentions.unknown_only:
@@ -120,6 +137,7 @@ class ScopeGuard(BaseGuard):
         detail = {
             "reason": reason,
             "domain": round(dom, 4),
+            "metric": metric,
             "similarity": round(sim, 4),
             "similarity_norm": round(sim_norm, 4),
             "nearest": f"{labels[best][0]}/{labels[best][1]}",

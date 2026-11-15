@@ -2,7 +2,7 @@
 
     python -m monitor.feedback export --env production --days 1      # -> monitoring/review_queue.jsonl
     # review: set "label" on each line to true_issue | false_positive | new_question_type | skip
-    python -m monitor.feedback apply monitoring/review_queue.jsonl  # -> eval/golden.jsonl, eval/redteam/*.jsonl
+    python -m monitor.feedback apply monitoring/review_queue.jsonl  # -> eval/golden_extra.jsonl, eval/redteam/*.jsonl
     python -m monitor.feedback stats                                 # eval-set growth from production
 
 A trace is flagged when a guard failed (in either mode), groundedness was low, or a user gave a
@@ -10,7 +10,7 @@ thumbs-down. ``--langfuse-queue`` also pushes flagged traces into a Langfuse ann
 
 Labels:
 - true_issue        -> appended to the matching red-team set (the guards must keep catching it)
-- false_positive    -> appended to the golden set (the guards must let it through)
+- false_positive    -> appended to eval/golden_extra.jsonl, this repo's additions to the upstream golden set (the guards must let it through)
 - new_question_type -> appended to the golden set with the reviewer's reference answer
 """
 from __future__ import annotations
@@ -110,7 +110,7 @@ def apply(queue: Path, eval_dir: Path) -> Counter:
         short = hashlib.sha1(it["trace_id"].encode()).hexdigest()[:8]
         tickers = list(reg.detect(it["question"]).covered)
         if label in ("false_positive", "new_question_type"):
-            path = eval_dir / "golden.jsonl"
+            path = eval_dir / "golden_extra.jsonl"
             if src in _existing_sources(path):
                 continue
             _append(path, {"id": f"gp_{short}", "question": it["question"], "ticker": tickers[0] if tickers else None,
@@ -141,7 +141,7 @@ def apply(queue: Path, eval_dir: Path) -> Counter:
 
 def stats(eval_dir: Path) -> dict:
     out = {}
-    for p in [eval_dir / "golden.jsonl", *sorted((eval_dir / "redteam").glob("*.jsonl"))]:
+    for p in [eval_dir / "golden_extra.jsonl", *sorted((eval_dir / "redteam").glob("*.jsonl"))]:
         rows = [json.loads(line) for line in p.read_text().splitlines() if line.strip()]
         out[p.stem] = {"total": len(rows), "from_production": sum(str(r.get("source", "")).startswith("production:") for r in rows)}
     out["from_production_total"] = sum(v["from_production"] for v in out.values() if isinstance(v, dict))

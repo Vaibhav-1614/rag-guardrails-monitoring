@@ -53,6 +53,8 @@ _ABBREV = re.compile(
     r"\b(?:U\.S|U\.K|Inc|Corp|Co|Ltd|No|Nos|vs|etc|e\.g|i\.e|Mr|Ms|Mrs|Dr|Jr|Sr|St|approx|Fig|Jan|Feb|Mar|Apr|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)\.",
 )
 _SENT_BOUNDARY = re.compile(r"(?:(?<=[.!?])|(?<=[.!?][\"'’”)\]]))\s+(?=[\"'“‘(\[]?[A-Z0-9$])")
+# A citation marker followed by a capitalised word also ends a sentence ("... methodology [1] Results of ...").
+_AFTER_CITATION = re.compile(r"(?<=\])\s+(?=[A-Z“\"(][a-zA-Z])")
 _PLACEHOLDER = "\u0000"
 
 
@@ -69,7 +71,7 @@ def split_sentences(text: str) -> list[str]:
             continue
         protected = _ABBREV.sub(lambda m: m.group(0).replace(".", _PLACEHOLDER), line)
         # Keep decimal points and dotted abbreviations intact: only split at ". " + capital/number.
-        parts = _SENT_BOUNDARY.split(protected)
+        parts = [q for part in _SENT_BOUNDARY.split(protected) for q in _AFTER_CITATION.split(part)]
         merged: list[str] = []
         for part in parts:
             part = part.replace(_PLACEHOLDER, ".").strip()

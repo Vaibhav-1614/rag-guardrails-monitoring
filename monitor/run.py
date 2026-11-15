@@ -89,8 +89,13 @@ def compute_report(history: list[dict], as_of: date, reference: Reference, embed
     if len(texts) >= int(qcfg.get("min_samples", 50)):
         ref_emb = reference.embed(embedder)
         cur_emb = embedder.encode(texts).astype(np.float32)
-        c2 = drift.classifier_two_sample_test(ref_emb, cur_emb)
-        mmd = drift.mmd_test(ref_emb, cur_emb, n_perm=int(qcfg.get("mmd_permutations", 200)))
+        ref_x, cur_x = ref_emb, cur_emb
+        novelty = getattr(embedder, "novelty_features", None)
+        if novelty is not None:  # LSA only: add the unseen-vocabulary share the embedding can't represent
+            ref_x = np.hstack([ref_emb, novelty(reference.texts)])
+            cur_x = np.hstack([cur_emb, novelty(texts)])
+        c2 = drift.classifier_two_sample_test(ref_x, cur_x)
+        mmd = drift.mmd_test(ref_x, cur_x, n_perm=int(qcfg.get("mmd_permutations", 200)))
         fired = c2["auc"] >= float(qcfg["c2st_auc"]) and c2["p_value"] < float(qcfg["c2st_p"])
         det["query_drift"] = {"fired": fired, "c2st": c2, "mmd": mmd, "centroid_distance": round(drift.centroid_distance(ref_emb, cur_emb), 4),
                               "n": len(texts), "embedder": embedder.name}

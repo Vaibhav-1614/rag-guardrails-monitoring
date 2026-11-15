@@ -17,6 +17,7 @@ import numpy as np
 
 from monitor.features import to_row
 from rag.config import resolve
+from rag.golden import load_golden
 
 
 @dataclass
@@ -93,7 +94,7 @@ def main() -> None:
     start = datetime.fromisoformat(args.start).replace(tzinfo=UTC)
     end = datetime.fromisoformat(args.end).replace(tzinfo=UTC) + timedelta(days=1)
     records = backend.read(start, end, args.env)
-    golden = [json.loads(line)["question"] for line in resolve("eval/golden.jsonl").read_text().splitlines() if line.strip()]
+    golden = [g["question"] for g in load_golden()]
     ref = build(records, golden, args.version, args.description or f"golden set + {args.env} {args.start}..{args.end}", get_embedder(settings))
     p = ref.save(args.out)
     print(f"reference {args.version}: {len(ref.texts)} queries ({len(records)} traces) -> {p}")

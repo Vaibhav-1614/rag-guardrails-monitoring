@@ -1,10 +1,12 @@
-# Optional model-backed guards (all run on CPU):
-#   - BAAI/bge-small-en-v1.5        query embeddings (dense retrieval, scope, drift)
-#   - prompt-injection classifier   (configs/guards/*.yaml -> prompt_injection.model)
-#   - cross-encoder NLI             (configs/guards/*.yaml -> nli_grounding.model)
-#   - spaCy en_core_web_sm          PERSON entities for Presidio
-# CPU-only PyTorch wheels keep the image small.
+# Optional model-backed backends (all CPU):
+#   - Xenova/ms-marco-MiniLM-L-6-v2  cross-encoder re-ranker used by the upstream v2 retrieval config
+#                                    (enables evidence-based refusal); ONNX via fastembed, no PyTorch
+#   - BAAI/bge-small-en-v1.5         query embeddings for scope and drift (fastembed)
+#   - prompt-injection classifier    (configs/guards/*.yaml -> prompt_injection.model)   needs PyTorch
+#   - cross-encoder NLI              (configs/guards/*.yaml -> nli_grounding.model)      needs PyTorch
+#   - spaCy en_core_web_sm           PERSON entities for Presidio
 --extra-index-url https://download.pytorch.org/whl/cpu
+fastembed>=0.4
 torch>=2.2
 transformers>=4.44
 sentence-transformers>=3.0

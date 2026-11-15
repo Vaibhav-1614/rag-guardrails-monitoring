@@ -85,10 +85,10 @@ def test_feedback_export_and_apply(tmp_path):
     labelled = [{**items[0], "label": "true_issue"}, {**items[1], "label": "false_positive"}]
     q.write_text("".join(json.dumps(i) + "\n" for i in labelled))
     (tmp_path / "redteam").mkdir()
-    (tmp_path / "golden.jsonl").write_text("")
+    (tmp_path / "golden_extra.jsonl").write_text("")
     (tmp_path / "redteam" / "injection.jsonl").write_text("")
     counts = apply(q, tmp_path)
     assert counts["injection:true_issue"] == 1 and counts["golden:false_positive"] == 1
     assert apply(q, tmp_path).total() == 0  # idempotent
-    row = json.loads((tmp_path / "golden.jsonl").read_text())
+    row = json.loads((tmp_path / "golden_extra.jsonl").read_text())
     assert row["source"] == "production:" + "b" * 16 and row["answerable"]

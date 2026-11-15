@@ -62,7 +62,7 @@ if not daily.empty:
 if rep.get("golden"):
     st.subheader("Nightly golden-set runs (upstream model drift)")
     g = pd.DataFrame([{"run": i, **x["metrics"]} for i, x in enumerate(rep["golden"])])
-    fig = px.line(g, x="run", y=[c for c in ["answered_rate", "reference_number_recall", "citation_coverage_mean",
+    fig = px.line(g, x="run", y=[c for c in ["answered_rate", "answer_check", "citation_coverage_mean",
                                             "numeric_support_mean", "unsupported_answer_rate"] if c in g], markers=True, height=320)
     st.plotly_chart(fig, use_container_width=True)
 with st.expander("Raw report"):

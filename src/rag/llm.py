@@ -20,7 +20,6 @@ import httpx
 
 from rag.config import load_settings
 from rag.prompts import NOT_FOUND
-from rag.text import FILING_BOILERPLATE, content_terms, split_sentences, stem
 
 logger = logging.getLogger(__name__)
 
@@ -135,55 +134,56 @@ class GroqGenerator:
             return GenerationResult("", self.provider, self.model, (time.perf_counter() - t0) * 1000, error=f"{type(e).__name__}: {e}")
 
 
-_QUESTION_STOP = FILING_BOILERPLATE | frozenset(
-    "apple microsoft alphabet google amazon meta platforms nvidia tesla jpmorgan chase johnson exxon mobil exxonmobil "
-    "jnj jpm aapl msft googl amzn nvda tsla xom inc".split()
-)
-
-_QUANT_Q = re.compile(r"\b(?:how much|how many|what (?:was|were|is|are) (?:the )?(?:total|amount|number)|revenue|sales|income|"
-                      r"expenses?|spend|spent|cost|margin|cash|debt|dividend|repurchase|employees|headcount|percent|%)", re.I)
-
-
 class ExtractiveGenerator:
-    """Deterministic offline answerer: best-covering retrieved sentences, each cited."""
+    """Deterministic no-LLM answerer, the same path the upstream service uses without API keys:
+    the facts-table sentence when the question is about a company-wide figure, otherwise the
+    retrieved sentences (or table rows with their header) that best match the question, each cited."""
 
     provider = "extractive"
-    model = "extractive-v1"
+    model = "extractive-v2"
 
-    def __init__(self, max_sentences: int = 3, min_coverage: float = 0.34) -> None:
-        self.max_sentences, self.min_coverage = max_sentences, min_coverage
+    def __init__(self, max_sentences: int = 2) -> None:
+        self.max_sentences = max_sentences
 
     def generate(self, req: GenerationRequest) -> GenerationResult:
+        from rag.upstream import ensure_importable
+
+        ensure_importable()
+        from rag_service.generation import extractive_answer
+        from rag_service.retriever import Passage
+
         t0 = time.perf_counter()
-        q = {stem(t) for t in content_terms(req.question, _QUESTION_STOP)}
-        quantitative = bool(_QUANT_Q.search(req.question))
-        scored: list[tuple[float, int, int, str]] = []
-        seen: set[str] = set()
-        for n, chunk in enumerate(req.chunks, 1):
-            for pos, sent in enumerate(split_sentences(chunk["text"])):
-                if not 25 <= len(sent) <= 600 or sent in seen:
-                    continue
-                seen.add(sent)
-                words = {stem(t) for t in content_terms(sent)}
-                if not words or not q:
-                    continue
-                cov = len(q & words) / len(q)
-                if cov >= self.min_coverage:
-                    bonus = 0.15 if quantitative and re.search(r"\d", sent) else 0.0
-                    scored.append((cov + bonus + 0.02 / n, n, pos, sent))
-        best = sorted(scored, key=lambda x: -x[0])[: self.max_sentences]
-        if not best:
-            text = NOT_FOUND
-        else:
-            parts = []
-            for _, n, _, sent in sorted(best, key=lambda x: (x[1], x[2])):
-                s = sent.rstrip()
-                if s.endswith((".", "!", "?")):
-                    parts.append(f"{s[:-1]} [{n}]{s[-1]}")
-                else:  # table rows and headings have no terminal punctuation
-                    parts.append(f"{s} [{n}].")
-            text = " ".join(parts)
-        return GenerationResult(text, self.provider, self.model, (time.perf_counter() - t0) * 1000)
+        text = req.meta.get("direct_answer") or ""
+        if not text:
+            passages = [Passage(chunk_id=c.get("chunk_id", f"c{i}"), ticker=c.get("ticker", ""), text=c["text"], score=0.0,
+                                rank=i, kind=c.get("kind", "text")) for i, c in enumerate(req.chunks, 1)]
+            text, _ = extractive_answer(req.question, passages, self.max_sentences, scorer=req.meta.get("scorer"))
+        return GenerationResult(cite_every_sentence(text) or NOT_FOUND, self.provider, self.model, (time.perf_counter() - t0) * 1000)
+
+
+_UNIT = re.compile(r"(.+?)((?:\s*\[\d+\])+)\.?(?=\s|$)", re.S)
+
+
+def cite_every_sentence(text: str) -> str:
+    """Upstream cites once per quoted unit (which can hold two sentences) and leaves the closing
+    sentence of a comparison ("Apple's was higher.") uncited. Give every sentence its marker so the
+    answer meets the per-sentence citation rule the guards enforce."""
+    from rag.text import split_sentences
+
+    out: list[str] = []
+    last_end, all_ids = 0, []
+    for m in _UNIT.finditer(text):
+        marker = "".join(m.group(2).split())
+        all_ids += [x for x in re.findall(r"\[\d+\]", marker) if x not in all_ids]
+        for sent in split_sentences(m.group(1)) or [m.group(1).strip()]:
+            out.append(f"{sent.strip().removesuffix('.')} {marker}.")
+        last_end = m.end()
+    tail = text[last_end:].strip()
+    if tail and all_ids:  # derived conclusion: rests on every source cited before it
+        out.append(f"{tail.removesuffix('.')} {''.join(all_ids)}.")
+    elif tail:
+        out.append(tail)
+    return " ".join(out)
 
 
 _NUM = re.compile(r"(?<![\w\[])(\d{1,3}(?:,\d{3})+(?:\.\d+)?|\d+\.\d+|\d{2,})(?![\w\]])")
@@ -245,26 +245,31 @@ def make_generator(provider: str, settings: dict | None = None) -> Generator:
         timeout=float(g.get("timeout_s", 60)),
     )
     if provider == "gemini":
-        key = os.environ.get("GOOGLE_API_KEY", "").strip()
+        key = _gemini_key()
         if not key:
-            raise RuntimeError("GOOGLE_API_KEY is not set")
+            raise RuntimeError("GEMINI_API_KEY / GOOGLE_API_KEY is not set")
         return GeminiGenerator(g.get("gemini_model", "gemini-2.5-flash"), key, **kw)
     if provider == "groq":
         key = os.environ.get("GROQ_API_KEY", "").strip()
         if not key:
             raise RuntimeError("GROQ_API_KEY is not set")
-        return GroqGenerator(g.get("groq_model", "llama-3.3-70b-versatile"), key, **kw)
+        return GroqGenerator(g.get("groq_model", "openai/gpt-oss-120b"), key, **kw)
     if provider == "extractive":
         return ExtractiveGenerator()
     raise ValueError(f"unknown provider {provider!r}")
 
 
+def _gemini_key() -> str:
+    return (os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY") or "").strip()
+
+
 def available_providers() -> list[str]:
     out = []
-    if os.environ.get("GOOGLE_API_KEY", "").strip():
-        out.append("gemini")
+    # Same order as the upstream service: Groq first, then Gemini.
     if os.environ.get("GROQ_API_KEY", "").strip():
         out.append("groq")
+    if _gemini_key():
+        out.append("gemini")
     return out + ["extractive"]
 
 

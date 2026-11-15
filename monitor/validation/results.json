@@ -1,6 +1,6 @@
 {
  "ok": true,
- "reference": "golden set (74) + 7 days of simulated baseline traffic (420 requests, seed 100, 2026-09-01..2026-09-07)",
+ "reference": "golden set (176) + 7 days of simulated baseline traffic (420 requests, seed 100, 2026-09-01..2026-09-07)",
  "per_day": 60,
  "days": 14,
  "embedder": "lsa",
@@ -65,7 +65,7 @@
     "guard_drift": 7,
     "output_drift": 7,
     "scope_drift": 7,
-    "emerging_topics": 11,
+    "emerging_topics": 12,
     "query_drift": 13
    },
    "expected": [
@@ -80,37 +80,30 @@
     {
      "detector": "scope_drift",
      "metric": "out_of_scope_rate",
-     "value": 0.069,
+     "value": 0.0571,
      "threshold": "PSI > 0.2 and |change| >= 0.08, or outside band",
      "day": 7
     },
     {
      "detector": "output_drift",
      "metric": "refusal_rate",
-     "value": 0.5,
-     "threshold": "band [0.082, 0.418]",
-     "day": 7
-    },
-    {
-     "detector": "output_drift",
-     "metric": "citations_mean",
-     "value": 2.4667,
-     "threshold": "band [2.473, 3.073]",
+     "value": 0.2,
+     "threshold": "band [-0.030, 0.163]",
      "day": 7
     },
     {
      "detector": "guard_drift",
      "metric": "scope_trigger_rate",
-     "value": 0.2,
-     "threshold": "z >= 4.0 and >= 2.0x baseline 0.0405",
+     "value": 0.1667,
+     "threshold": "z >= 4.0 and >= 2.0x baseline 0.0333",
      "day": 7
     },
     {
      "detector": "emerging_topics",
      "metric": "novel_share",
-     "value": 0.219,
+     "value": 0.1881,
      "threshold": ">= 0.15",
-     "day": 11
+     "day": 12
     },
     {
      "detector": "query_drift",
@@ -144,6 +137,7 @@
      "day": 9,
      "fired": [
       "guard_drift",
+      "output_drift",
       "scope_drift"
      ]
     },
@@ -151,16 +145,13 @@
      "as_of": "2026-10-11",
      "day": 10,
      "fired": [
-      "guard_drift",
-      "output_drift",
-      "scope_drift"
+      "guard_drift"
      ]
     },
     {
      "as_of": "2026-10-12",
      "day": 11,
      "fired": [
-      "emerging_topics",
       "guard_drift",
       "scope_drift"
      ]
@@ -170,6 +161,7 @@
      "day": 12,
      "fired": [
       "emerging_topics",
+      "guard_drift",
       "scope_drift"
      ]
     },
@@ -213,28 +205,21 @@
     {
      "detector": "output_drift",
      "metric": "refusal_rate",
-     "value": 0.4833,
-     "threshold": "band [0.034, 0.333]",
-     "day": 13
-    },
-    {
-     "detector": "output_drift",
-     "metric": "answer_chars_mean",
-     "value": 489.7097,
-     "threshold": "band [503.818, 603.207]",
+     "value": 0.3833,
+     "threshold": "band [-0.034, 0.134]",
      "day": 13
     },
     {
      "detector": "guard_drift",
      "metric": "prompt_injection_trigger_rate",
-     "value": 0.35,
+     "value": 0.3333,
      "threshold": "z >= 4.0 and >= 2.0x baseline 0.0167",
      "day": 13
     },
     {
      "detector": "guard_drift",
      "metric": "scope_trigger_rate",
-     "value": 0.2667,
+     "value": 0.25,
      "threshold": "z >= 4.0 and >= 2.0x baseline 0.0333",
      "day": 13
     }
@@ -283,12 +268,12 @@
   },
   "hallucination_pressure": {
    "fired": [
-    "output_drift",
-    "retrieval_drift"
+    "guard_drift",
+    "output_drift"
    ],
    "first_night": {
-    "output_drift": 9,
-    "retrieval_drift": 13
+    "guard_drift": 7,
+    "output_drift": 7
    },
    "expected": [
     "output_drift"
@@ -301,47 +286,54 @@
     {
      "detector": "output_drift",
      "metric": "refusal_rate",
-     "value": 0.4,
-     "threshold": "band [0.070, 0.397]",
-     "day": 9
+     "value": 0.2333,
+     "threshold": "band [-0.065, 0.232]",
+     "day": 7
     },
     {
-     "detector": "retrieval_drift",
-     "metric": "retrieval_top_psi",
-     "value": 0.2152,
-     "threshold": "> 0.2",
-     "day": 13
+     "detector": "guard_drift",
+     "metric": "retrieval_conf_trigger_rate",
+     "value": 0.2,
+     "threshold": "z >= 4.0 and >= 2.0x baseline 0.0238",
+     "day": 7
     }
    ],
    "nightly_runs": [
     {
      "as_of": "2026-10-08",
      "day": 7,
-     "fired": []
+     "fired": [
+      "guard_drift",
+      "output_drift"
+     ]
     },
     {
      "as_of": "2026-10-09",
      "day": 8,
-     "fired": []
+     "fired": [
+      "guard_drift"
+     ]
     },
     {
      "as_of": "2026-10-10",
      "day": 9,
      "fired": [
-      "output_drift"
+      "guard_drift"
      ]
     },
     {
      "as_of": "2026-10-11",
      "day": 10,
      "fired": [
-      "output_drift"
+      "guard_drift"
      ]
     },
     {
      "as_of": "2026-10-12",
      "day": 11,
-     "fired": []
+     "fired": [
+      "guard_drift"
+     ]
     },
     {
      "as_of": "2026-10-13",
@@ -352,7 +344,7 @@
      "as_of": "2026-10-14",
      "day": 13,
      "fired": [
-      "retrieval_drift"
+      "output_drift"
      ]
     }
    ]
@@ -382,56 +374,70 @@
     {
      "detector": "output_drift",
      "metric": "refusal_rate",
-     "value": 0.4,
-     "threshold": "band [0.070, 0.397]",
+     "value": 0.2833,
+     "threshold": "band [-0.030, 0.163]",
      "day": 9
     },
     {
      "detector": "output_drift",
      "metric": "regeneration_rate",
-     "value": 0.45,
+     "value": 0.6667,
      "threshold": "band [-0.050, 0.050]",
      "day": 9
     },
     {
      "detector": "output_drift",
      "metric": "flagged_rate",
-     "value": 0.1667,
+     "value": 0.3167,
      "threshold": "band [-0.050, 0.050]",
      "day": 9
     },
     {
      "detector": "output_drift",
      "metric": "unsupported_rate",
-     "value": 0.1111,
+     "value": 0.2791,
      "threshold": "band [-0.050, 0.050]",
      "day": 9
     },
     {
      "detector": "guard_drift",
      "metric": "citation_trigger_rate",
-     "value": 0.2833,
+     "value": 0.25,
      "threshold": "z >= 4.0 and >= 2.0x baseline 0.0012",
      "day": 9
     },
     {
      "detector": "guard_drift",
      "metric": "numeric_grounding_trigger_rate",
-     "value": 0.1667,
+     "value": 0.3167,
      "threshold": "z >= 4.0 and >= 2.0x baseline 0.0012",
      "day": 9
     },
     {
      "detector": "upstream_model_drift",
      "metric": "answered_rate",
-     "value": 0.5667,
+     "value": 0.7667,
      "threshold": "band [0.902, 1.098]",
      "day": 9
     },
     {
      "detector": "upstream_model_drift",
+     "metric": "answer_check",
+     "value": 0.6,
+     "threshold": "band [0.860, 1.040]",
+     "day": 9
+    },
+    {
+     "detector": "upstream_model_drift",
+     "metric": "numeric_support_mean",
+     "value": 0.7469,
+     "threshold": "band [0.940, 1.060]",
+     "day": 9
+    },
+    {
+     "detector": "upstream_model_drift",
      "metric": "unsupported_answer_rate",
-     "value": 0.1176,
+     "value": 0.6087,
      "threshold": "band [-0.098, 0.098]",
      "day": 9
     },
@@ -498,6 +504,7 @@
      "as_of": "2026-10-14",
      "day": 13,
      "fired": [
+      "guard_drift",
       "upstream_model_drift"
      ]
     }

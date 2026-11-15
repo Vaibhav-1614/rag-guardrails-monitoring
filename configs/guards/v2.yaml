@@ -5,24 +5,21 @@ version: guards/v2
 guards:
   charset:           { mode: enforce, max_chars: 1000, max_unusual_ratio: 0.3 }
   pii:               { mode: enforce, action: redact, ner_model: en_core_web_sm, min_score: 0.4 }
-  # 0 false positives on 66 golden + 22 near-miss questions -> enforce
+  # 0 false positives on 148 golden + 22 near-miss questions -> enforce
   prompt_injection:  { mode: enforce, threshold: 0.90, model: protectai/deberta-v3-base-prompt-injection-v2 }
-  # legit min score 0.54 vs off-topic max 0.39 (lsa embedder) -> threshold in the gap, enforce
+  # dev-split legit min score 0.55 vs off-topic max 0.39 (lsa embedder) -> threshold in the gap, enforce.
+  # A metric the upstream facts table recognises ("headcount", "revenue") counts as in-domain wording.
   scope:
     mode: enforce
     threshold: 0.45
     unknown_company_mode: enforce
     by_embedder:
       bge: { similarity_floor: 0.45, similarity_ceiling: 0.80 }
-  # answerable min top score 0.434; unanswerable/off-topic mostly <= 0.41 (v1's 0.45 refused answerable questions)
-  retrieval_conf:
-    mode: enforce
-    min_top_score: 0.42
-    relevance_floor: 0.30
-    min_chunks: 1
-    by_embedder:
-      bge: { min_top_score: 0.55 }   # starting point; re-run calibration when the bge embedder is active
-  # 0 hits on 5,769 real 10-K chunks after narrowing the "no restrictions" rule -> quarantine whole chunk
+  # The gate is the upstream service's answerability decision (facts table, period/market/forecast
+  # rules, unknown entities, and the re-ranker's evidence score when it is loaded). min_confidence can
+  # add a stricter floor; none is set because coverage alone does not separate the classes (see eval).
+  retrieval_conf:    { mode: enforce }
+  # 0 hits on 7,061 real 10-K chunks after narrowing the "no restrictions" rule -> quarantine whole chunk
   context_sanitizer: { mode: enforce, threshold: 0.8, strip: chunk }
   citation:          { mode: enforce, on_fail: regenerate, then: strip_uncited, claims: strict }
   # precision-aware rounding + 0.05% slack; the doc's 0.5% let wrong-digit figures through (see tolerance sweep)

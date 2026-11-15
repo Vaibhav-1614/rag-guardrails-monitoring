@@ -28,8 +28,10 @@ import yaml  # noqa: E402
 
 from guards.base import GuardContext  # noqa: E402
 from guards.numeric import NumericChecker  # noqa: E402
+from rag.golden import answer_check, load_golden  # noqa: E402
 from rag.llm import ExtractiveGenerator, GenerationRequest  # noqa: E402
 from rag.service import RAGService  # noqa: E402
+from rag.upstream import upstream_commit  # noqa: E402
 
 EVAL = ROOT / "eval"
 
@@ -86,7 +88,7 @@ class Evaluator:
         self.build_s = time.perf_counter() - t0
         self.p = self.svc.c.pipeline
         self.split = split
-        self.golden = load_jsonl(EVAL / "golden.jsonl")
+        self.golden = load_golden()
         self.answerable = [g for g in self.golden if g["answerable"]]
         self.report: dict[str, Any] = {"guards": {}, "system": {}, "latency": {}, "calibration": {}, "curves": {}}
 
@@ -182,7 +184,8 @@ class Evaluator:
         scores = [x.score for _, x in off] + [x.score for x in legit_res]
         thr = float(self.p.cfg("scope").get("threshold", 0.35))
         self.report["curves"]["scope"] = curve(scores, [True] * len(off) + [False] * len(legit_res), thr, "lt")
-        legit_scores = sorted(x.score for x in legit_res)
+        n_near = len(legit_q) - len(self.answerable)
+        legit_scores = sorted(x.score for i, x in enumerate(legit_res) if i < n_near or self.answerable[i - n_near]["split"] == "dev")
         self.report["calibration"]["scope"] = {
             "min_legit_score": round(legit_scores[0], 4), "p5_legit_score": round(float(np.percentile(legit_scores, 5)), 4),
             "off_topic_scores": sorted(round(x.score, 3) for _, x in off),
@@ -216,30 +219,52 @@ class Evaluator:
 
     # ------------------------------------------------------------------ retrieval / context guards
     def eval_retrieval_conf(self) -> None:
+        """The gate delegates to the upstream answerability decision; measure it on the golden set per split."""
         r = self.svc.c.retriever
-        thr = float(self.p.cfg("retrieval_conf").get("min_top_score", 0.45))
-        ans_scores = [r.retrieve(g["question"]).top_score for g in self.answerable]
-        un = [g["question"] for g in self.golden if not g["answerable"]]
-        off = [x["text"] for x in self.rt("scope_advice") if x["category"] == "off_topic"]
-        un_scores = [r.retrieve(q).top_score for q in un]
-        off_scores = [r.retrieve(q).top_score for q in off]
-        neg_scores = un_scores + off_scores
-        scores = neg_scores + ans_scores
-        labels = [True] * len(neg_scores) + [False] * len(ans_scores)
-        self.report["curves"]["retrieval_conf"] = curve(scores, labels, thr, "lt")
-        suggested = round(min(ans_scores) - 0.01, 3)
+        guard = self.p.guards["retrieval_conf"]
+
+        def run(q: str):
+            res = r.retrieve(q)
+            chunks = [c.as_chunk() for c in res.chunks]
+            return res, guard.check(GuardContext(question=q, retrieval=res, chunks=chunks))
+
+        ans = [(g, *run(g["question"])) for g in self.answerable]
+        un = [(g, *run(g["question"])) for g in self.golden if not g["answerable"]]
+        off = [run(x["text"]) for x in self.rt("scope_advice") if x["category"] == "off_topic"]
+        bait = [run(x["question"]) for x in self.rt("hallucination_bait")]
+        by_split, by_cat = {}, defaultdict(lambda: [0, 0])
+        for split in ("dev", "test"):
+            a = [x for x in ans if x[0]["split"] == split]
+            u = [x for x in un if x[0]["split"] == split]
+            by_split[split] = {"answerable": len(a), "false_refusals": sum(not c.passed for _, _, c in a),
+                               "unanswerable": len(u), "unanswerable_refused": sum(not c.passed for _, _, c in u)}
+        for g, _, c in un:
+            by_cat[g.get("category") or "other"][0] += not c.passed
+            by_cat[g.get("category") or "other"][1] += 1
+        # Confidence of questions answered from text (facts-table hits are fixed at 1.0)
+        text_ans = [res.confidence for g, res, _ in ans if res.facts_mode == "none" and g["split"] == "dev"]
+        text_un = [res.confidence for _, res, c in un if res.facts_mode == "none"]
+        floor = guard.config.get("min_confidence")
+        if text_ans and text_un:
+            thr = float(floor) if floor is not None else round(min(text_ans) - 0.01, 3)
+            self.report["curves"]["retrieval_conf"] = curve(text_un + text_ans, [True] * len(text_un) + [False] * len(text_ans), thr, "lt")
         self.report["calibration"]["retrieval_conf"] = {
-            "answerable_min": round(min(ans_scores), 4), "answerable_p5": pct(ans_scores, 5),
-            "unanswerable_scores": sorted(round(s, 3) for s in un_scores),
-            "off_topic_max": round(max(off_scores), 4),
-            "suggested_min_top_score": suggested,
-            "unanswerable_recall_at_suggested": round(sum(s < suggested for s in un_scores) / max(len(un_scores), 1), 3),
-            "off_topic_recall_at_suggested": round(sum(s < suggested for s in off_scores) / max(len(off_scores), 1), 3),
+            "signal": "re-ranker evidence score" if r.reranker else "question-term coverage (no re-ranker loaded)",
+            "dev_answerable_min_confidence": round(min(text_ans), 4) if text_ans else None,
+            "dev_answerable_p5_confidence": pct(text_ans, 5),
+            "unanswerable_confidences": sorted(round(x, 3) for x in text_un),
         }
         self.report["guards"]["retrieval_conf"] = {
-            "threshold": thr, "golden_fp": sum(s < thr for s in ans_scores),
-            "unanswerable_recall": round(sum(s < thr for s in un_scores) / max(len(un_scores), 1), 3),
-            "off_topic_recall": round(sum(s < thr for s in off_scores) / max(len(off_scores), 1), 3),
+            "retrieval_version": r.version, "reranker": r.reranker, "min_confidence": floor,
+            "golden_fp": sum(not c.passed for _, _, c in ans),
+            "false_refusal_ids": [g["id"] for g, _, c in ans if not c.passed],
+            "unanswerable_recall": round(sum(not c.passed for _, _, c in un) / max(len(un), 1), 3),
+            "unanswerable_recall_by_category": {k: f"{a}/{b}" for k, (a, b) in sorted(by_cat.items())},
+            "missed_unanswerable": [g["question"][:80] for g, _, c in un if c.passed],
+            "by_split": by_split,
+            "off_topic_recall": round(sum(not c.passed for _, c in off) / max(len(off), 1), 3),
+            "hallucination_bait_recall": round(sum(not c.passed for _, c in bait) / max(len(bait), 1), 3),
+            "refusal_reasons": dict(Counter(res.reason for _, res, c in un if not c.passed)),
         }
 
     def eval_sanitizer(self) -> None:
@@ -324,11 +349,11 @@ class Evaluator:
         items = []
         for row in self.answerable:
             res = r.retrieve(row["question"])
-            chunks = [{"chunk_id": c.chunk_id, "ticker": c.ticker, "section": c.section, "text": c.text} for c in res.chunks]
+            chunks = [c.as_chunk() for c in res.chunks if c.kind != "fact"]
             ans = gen.generate(GenerationRequest(row["question"], chunks, "", "")).text
-            if "[" not in ans:
+            if "[" not in ans or not chunks:
                 continue
-            other_t = rng.choice([t for t in self.svc.c.registry.tickers if t != row["ticker"]])
+            other_t = rng.choice([t for t in self.svc.c.registry.tickers if t not in row["tickers"]])
             other = [c for c in self.svc.c.corpus.chunks if c.ticker == other_t]
             swapped = [{"chunk_id": c.chunk_id, "ticker": c.ticker, "section": c.section, "text": c.text} for c in rng.sample(other, len(chunks))]
             items.append((ans, chunks, False))
@@ -355,6 +380,23 @@ class Evaluator:
                 if not x.passed and x.mode == "monitor" and x.detail.get("attempt", 0) == 0:
                     shadow[x.guard] += 1
         un_runs = [(g, r) for g, r in golden_runs if not g["answerable"]]
+        checks = [(g, answer_check(r.answer, g)) for g, r in ans_runs]
+        checks = [(g, ok) for g, ok in checks if ok is not None]
+        by_split = {}
+        for split in ("dev", "test"):
+            a = [(g, r) for g, r in ans_runs if g["split"] == split]
+            u = [(g, r) for g, r in un_runs if g["split"] == split]
+            c = [ok for g, ok in checks if g["split"] == split]
+            by_split[split] = {
+                "answerable": len(a),
+                "answerable_refused_by_guards": sum(r.status in ("refused", "fallback") and r.refusal_reason != "model_not_found" for _, r in a),
+                "unanswerable": len(u), "unanswerable_refused": sum(r.status != "answered" for _, r in u),
+                "answer_check": round(sum(c) / max(len(c), 1), 4), "answer_check_n": len(c),
+            }
+        by_type = defaultdict(lambda: [0, 0])
+        for g, r in ans_runs:
+            by_type[g["type"]][0] += r.status == "answered"
+            by_type[g["type"]][1] += 1
         legit = [x["text"] for x in self.rt("scope_advice") if x["category"] == "legit_near_miss"]
         legit += [x["text"] for x in self.rt("injection") if x["label"] == "benign"]
         legit_runs = [svc.ask(q, trace=False) for q in legit]
@@ -400,6 +442,13 @@ class Evaluator:
             "golden_shadow_would_fail": dict(shadow),
             "golden_unanswerable_refused": sum(r.status != "answered" for _, r in un_runs),
             "golden_unanswerable": len(un_runs),
+            "golden_unanswerable_refusal_rate": round(sum(r.status != "answered" for _, r in un_runs) / max(len(un_runs), 1), 4),
+            "golden_unanswerable_answered": [g["question"][:80] for g, r in un_runs if r.status == "answered"],
+            "golden_unanswerable_refused_by": dict(Counter(r.refusal_reason for _, r in un_runs if r.status != "answered")),
+            "golden_answer_check": round(sum(ok for _, ok in checks) / max(len(checks), 1), 4),
+            "golden_answer_check_failed": [g["id"] for g, ok in checks if not ok],
+            "golden_by_split": by_split,
+            "golden_answered_by_type": {k: f"{a}/{b}" for k, (a, b) in sorted(by_type.items())},
             "over_refusal_rate": round(len(over) / max(len(all_legit), 1), 4),
             "over_refusal_n": len(over), "legit_n": len(all_legit),
             "over_refused_examples": [r.question[:90] for r in over][:10],
@@ -440,7 +489,7 @@ class Evaluator:
         svc = self.svc
         guard = self.p.guards["numeric_grounding"]
         original_mode, original_gen, original_alt = guard.mode, svc.c.generator, svc.c.alternate
-        qs = [g for g in self.answerable if g["type"] == "numeric"] + [g for g in self.answerable if g["type"] == "prose"]
+        qs = [g for g in self.answerable if g["type"] in ("numeric", "comparison", "lookup")]
         out = {}
         try:
             for mode in ("monitor", "enforce"):
@@ -478,6 +527,7 @@ class Evaluator:
         c = self.svc.c
         self.report["meta"] = {
             "config": self.p.version, "split": self.split, "embedder": c.embedder.name,
+            "retrieval": c.retriever.version, "reranker": c.retriever.reranker, "upstream_commit": upstream_commit(),
             "injection_classifier": self.p.guards["prompt_injection"].classifier.model if self.p.guards["prompt_injection"].classifier else None,
             "nli_backend": self.p.guards["nli_grounding"].backend.name, "pii_ner": self.p.pii_detector.ner,
             "generator": f"{c.generator.provider}:{c.generator.model}",
@@ -515,7 +565,8 @@ def to_markdown(rep: dict) -> str:
     lines = [f"# Guard evaluation: {m['config']}", "",
              f"Backends: embedder `{m['embedder']}`, injection classifier `{m['injection_classifier'] or 'none (rules only)'}`, "
              f"NLI `{m['nli_backend']}`, PII NER `{'spaCy' if m['pii_ner'] else 'none (patterns + self-identified names)'}`, "
-             f"generator `{m['generator']}`. Split: `{m['split']}`.", "",
+             f"generator `{m['generator']}`, upstream retrieval `{m['retrieval']}` (re-ranker {'on' if m['reranker'] else 'off'}) at "
+             f"`{m['upstream_commit']}`. Split: `{m['split']}`.", "",
              "## Per-guard detection", "", "| Guard | Precision | Recall | F1 | Golden FP | Notes |", "|---|---|---|---|---|---|"]
 
     def row(name: str, note: str = "") -> None:
@@ -531,11 +582,12 @@ def to_markdown(rep: dict) -> str:
     row("citation")
     row("nli_grounding", f"backend {gd['nli_grounding']['backend']}")
     rc = gd["retrieval_conf"]
-    lines.append(f"| retrieval_conf | – | {rc['unanswerable_recall']} (unanswerable) | – | {rc['golden_fp']} | min_top_score {rc['threshold']}, off-topic recall {rc['off_topic_recall']} |")
+    lines.append(f"| retrieval_conf | – | {rc['unanswerable_recall']} (unanswerable) | – | {rc['golden_fp']} | upstream `{rc['retrieval_version']}`, re-ranker {'on' if rc['reranker'] else 'off'}; hallucination-bait recall {rc['hallucination_bait_recall']} |")
     cs = gd["context_sanitizer"]
     lines.append(f"| context_sanitizer | – | {cs['detection_rate']} (planted) | – | – | payload removed {cs['payload_removed_rate']}; real 10-K chunks flagged {cs['corpus_chunks_flagged']}/{cs['corpus_chunks_scanned']} |")
     lines += ["", "## System", "", "| Metric | Value |", "|---|---|"]
-    for k in ("generator", "golden_answerable_blocked", "golden_unsupported_number_rate", "over_refusal_rate",
+    for k in ("generator", "golden_answerable", "golden_answerable_blocked", "golden_unanswerable_refusal_rate", "golden_answer_check",
+              "golden_by_split", "golden_unsupported_number_rate", "over_refusal_rate",
               "near_miss_retrieval_refusals", "generator_not_found_rate", "injection_asr_enforced",
               "injection_asr_config", "hallucination_bait_refusal_rate", "hallucination_bait_unsupported_rate", "indirect_canary_leak_rate",
               "regeneration_rate", "golden_shadow_would_fail"):

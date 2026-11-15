@@ -26,6 +26,7 @@ from monitor.reference import Reference, build  # noqa: E402
 from monitor.run import compute_report  # noqa: E402
 from monitor.simulate_traffic import simulate  # noqa: E402
 from rag.config import load_yaml, resolve  # noqa: E402
+from rag.golden import load_golden  # noqa: E402
 
 SCENARIOS = ["baseline", "topic_shift", "attack_wave", "hallucination_pressure", "model_drift"]
 DETECTORS = ["query_drift", "emerging_topics", "scope_drift", "retrieval_drift", "output_drift", "guard_drift",
@@ -50,7 +51,7 @@ def main() -> int:
     ap.add_argument("--per-day", type=int, default=60)
     ap.add_argument("--golden-limit", type=int, default=30)
     ap.add_argument("--work", default="monitoring/sim")
-    ap.add_argument("--rebuild-reference", action="store_true", help="overwrite monitor/reference/v1.npz")
+    ap.add_argument("--rebuild-reference", action="store_true", help="rebuild the reference file named in configs/monitoring.yaml")
     ap.add_argument("--scenarios", default=",".join(SCENARIOS))
     args = ap.parse_args()
 
@@ -70,11 +71,11 @@ def main() -> int:
         from datetime import UTC, datetime
 
         recs = backend.read(datetime(2026, 9, 1, tzinfo=UTC), datetime(2026, 9, 8, tzinfo=UTC), "sim-reference")
-        golden = [json.loads(line)["question"] for line in resolve("eval/golden.jsonl").read_text().splitlines() if line.strip()]
-        ref = build(recs, golden, "v1", f"golden set ({len(golden)}) + 7 days of simulated baseline traffic "
+        golden = [g["question"] for g in load_golden()]
+        ref = build(recs, golden, ref_path.stem, f"golden set ({len(golden)}) + 7 days of simulated baseline traffic "
                     f"({len(recs)} requests, seed 100, {REF_START}..{REF_START + timedelta(days=6)})", svc.c.embedder)
         ref.save(ref_path)
-        print(f"reference v1: {len(ref.texts)} queries -> {ref_path.relative_to(ROOT)}  ({time.perf_counter() - t0:.0f}s)", flush=True)
+        print(f"reference {ref_path.stem}: {len(ref.texts)} queries -> {ref_path.relative_to(ROOT)}  ({time.perf_counter() - t0:.0f}s)", flush=True)
     reference = Reference.load(ref_path)
 
     from datetime import UTC, datetime
@@ -164,13 +165,13 @@ def plot(series: dict) -> None:
     panels = [("out_of_scope_rate", "topic_shift", "Out-of-scope rate (topic shift)"),
               ("refusal_rate", "hallucination_pressure", "Refusal rate (hallucination pressure)"),
               ("prompt_injection", "attack_wave", "Injection trigger rate (attack wave)"),
-              ("reference_number_recall", "model_drift", "Golden: reference-figure recall (model drift)")]
+              ("answer_check", "model_drift", "Golden: answer check (model drift)")]
     fig, axes = plt.subplots(1, 4, figsize=(17, 3.4))
     for ax, (metric, scen, title) in zip(axes, panels, strict=True):
         for s, color in ((scen, "#dc3912"), ("baseline", "#3366cc")):
             if s not in series:
                 continue
-            if metric == "reference_number_recall":
+            if metric == "answer_check":
                 pts = [(g["day"], g[metric]) for g in series[s]["golden"]]
             elif metric == "prompt_injection":
                 pts = [(i, d["triggers"][metric] / d["n"]) for i, d in enumerate(series[s]["daily"])]

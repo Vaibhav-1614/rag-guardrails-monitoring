@@ -1,6 +1,7 @@
 # Lite image (default): rules, Presidio patterns, LSA embeddings, no PyTorch (~0.6 GB).
 #   docker build -t rag-guardrails .
-# Full image: bge embeddings, prompt-injection classifier, NLI cross-encoder and spaCy NER, all on CPU,
+# Needs the submodule: git submodule update --init
+# Full image: upstream re-ranker, bge embeddings, prompt-injection classifier, NLI cross-encoder and spaCy NER, all on CPU,
 # with model weights baked in so cold starts never download anything.
 #   docker build --build-arg WITH_ML=1 -t rag-guardrails:ml .
 FROM python:3.12-slim
@@ -16,7 +17,7 @@ RUN pip install -r requirements.txt \
 COPY pyproject.toml ./
 COPY src ./src
 COPY configs ./configs
-COPY data/index ./data/index
+COPY upstream ./upstream
 COPY eval ./eval
 COPY monitor ./monitor
 

@@ -5,7 +5,7 @@ history_days: 28          # daily time series kept for bands and charts
 band_window: 7            # trailing days that define a metric's normal band
 band_k: 3.0               # alert when today is outside mean +/- k * sigma
 min_requests_per_day: 20  # days with fewer requests are shown but never alert
-reference: monitor/reference/v1.npz
+reference: monitor/reference/v2.npz
 
 query_drift:
   min_samples: 50
@@ -41,7 +41,7 @@ upstream_model_drift:     # nightly golden run against production, independent o
   k: 3.0
   metrics:
     answered_rate:            { min_abs_change: 0.10, min_std: 0.02 }
-    reference_number_recall:  { min_abs_change: 0.15, min_std: 0.03 }
+    answer_check:             { min_abs_change: 0.15, min_std: 0.03 }
     citation_coverage_mean:   { min_abs_change: 0.10, min_std: 0.02 }
     numeric_support_mean:     { min_abs_change: 0.10, min_std: 0.02 }
     unsupported_answer_rate:  { min_abs_change: 0.10, min_std: 0.02 }

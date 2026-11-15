@@ -7,7 +7,7 @@ guards:
   pii:               { mode: enforce, action: redact, ner_model: en_core_web_sm, min_score: 0.4 }
   prompt_injection:  { mode: monitor, threshold: 0.90, model: protectai/deberta-v3-base-prompt-injection-v2 }
   scope:             { mode: monitor, threshold: 0.35, unknown_company_mode: monitor }
-  retrieval_conf:    { mode: enforce, min_top_score: 0.45, relevance_floor: 0.30, min_chunks: 1 }
+  retrieval_conf:    { mode: enforce }   # delegates to the upstream answerability decision
   context_sanitizer: { mode: enforce, threshold: 0.8 }
   citation:          { mode: enforce, on_fail: regenerate, then: strip_uncited }
   numeric_grounding: { mode: monitor, on_fail: regenerate, then: flag, tolerance: 0.005 }

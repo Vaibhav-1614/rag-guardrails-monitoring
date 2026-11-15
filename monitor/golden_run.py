@@ -19,17 +19,18 @@ from typing import Any
 import httpx
 import numpy as np
 
-from guards.numeric import NumericChecker
 from rag.config import resolve
+from rag.golden import answer_check
+from rag.golden import load_golden as _load_golden
 
 
 def load_golden(limit: int | None = None) -> list[dict]:
-    rows = [json.loads(line) for line in resolve("eval/golden.jsonl").read_text().splitlines() if line.strip()]
-    rows = [r for r in rows if r["answerable"]]
+    """Answerable golden questions; with ``limit``, a fixed mix that keeps every question type."""
+    rows = [r for r in _load_golden() if r["answerable"]]
     if limit:
-        numeric = [r for r in rows if r["type"] == "numeric"]
-        prose = [r for r in rows if r["type"] != "numeric"]
-        rows = (numeric + prose)[:limit]
+        checked = [r for r in rows if r.get("answer_contains")]
+        rest = [r for r in rows if not r.get("answer_contains")]
+        rows = (checked[::max(len(checked) // max(limit * 2 // 3, 1), 1)][: limit * 2 // 3] + rest)[:limit]
     return rows
 
 
@@ -42,16 +43,6 @@ def code_version() -> str:
         return "unknown"
 
 
-def reference_numbers_found(answer: str, ref_numbers: list[str], ticker: str) -> bool:
-    """Does the answer state every reference figure (allowing re-scaling such as 416,161 million -> $416.2 billion)?"""
-    ck = NumericChecker(rel_tol=0.0005)
-    for num in ref_numbers:
-        checks = ck.check(f"The figure is {num} [1].", [{"text": answer, "ticker": ticker}], table_scale={ticker: 1e6})
-        if not checks or any(c.status not in ("supported", "derived") for c in checks):
-            return False
-    return True
-
-
 def _guard(resp: dict, name: str) -> dict | None:
     gs = [g for g in resp.get("guards", []) if g["guard"] == name]
     return gs[-1] if gs else None
@@ -59,8 +50,8 @@ def _guard(resp: dict, name: str) -> dict | None:
 
 def summarize(items: list[dict], responses: list[dict]) -> dict[str, Any]:
     answered = [r for r in responses if r["status"] == "answered"]
-    numeric_items = [(i, r) for i, r in zip(items, responses, strict=True) if i["type"] == "numeric"]
-    found = [reference_numbers_found(r["answer"], i["reference_numbers"], i["ticker"]) for i, r in numeric_items]
+    # Upstream's answer check: the known figure or phrase is present in the answer.
+    found = [ok for i, r in zip(items, responses, strict=True) if (ok := answer_check(r["answer"], i)) is not None]
 
     def mean_score(name: str) -> float:
         vals = [g["score"] for r in answered if (g := _guard(r, name)) and g.get("score") is not None]
@@ -70,7 +61,7 @@ def summarize(items: list[dict], responses: list[dict]) -> dict[str, Any]:
     return {
         "n": len(responses),
         "answered_rate": round(len(answered) / max(len(responses), 1), 4),
-        "reference_number_recall": round(float(np.mean(found)), 4) if found else float("nan"),
+        "answer_check": round(float(np.mean(found)), 4) if found else float("nan"),
         "citation_coverage_mean": round(mean_score("citation"), 4),
         "numeric_support_mean": round(mean_score("numeric_grounding"), 4),
         "groundedness_mean": round(mean_score("nli_grounding"), 4),

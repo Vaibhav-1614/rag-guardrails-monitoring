@@ -10,3 +10,8 @@ docs
 dashboard
 tests
 .env
+upstream/rag-eval-platform/.git
+upstream/rag-eval-platform/data/parsed
+upstream/rag-eval-platform/data/results.db
+upstream/rag-eval-platform/data/index/chunks
+upstream/rag-eval-platform/data/index/embeddings

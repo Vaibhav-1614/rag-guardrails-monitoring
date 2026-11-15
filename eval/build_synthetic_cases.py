@@ -27,6 +27,7 @@ sys.path[:0] = [str(ROOT / "src"), str(ROOT)]
 
 from rag.companies import get_registry  # noqa: E402
 from rag.corpus import load_corpus  # noqa: E402
+from rag.golden import load_golden  # noqa: E402
 from rag.llm import ExtractiveGenerator, GenerationRequest  # noqa: E402
 from rag.retriever import Retriever  # noqa: E402
 
@@ -174,7 +175,7 @@ def numeric_cases(rng: random.Random) -> list[dict]:
 
 
 def citation_cases(rng: random.Random) -> list[dict]:
-    golden = [json.loads(line) for line in (ROOT / "eval/golden.jsonl").read_text().splitlines() if line.strip()]
+    golden = load_golden()
     retriever = Retriever()
     gen = ExtractiveGenerator()
     out: list[dict] = []
@@ -182,9 +183,9 @@ def citation_cases(rng: random.Random) -> list[dict]:
         if not g["answerable"]:
             continue
         r = retriever.retrieve(g["question"])
-        chunks = [{"ticker": c.ticker, "section": c.section, "text": c.text, "chunk_id": c.chunk_id} for c in r.chunks]
+        chunks = [c.as_chunk() for c in r.chunks if c.kind != "fact"]  # fact passages are not in the index
         ans = gen.generate(GenerationRequest(g["question"], chunks, "", "")).text
-        if "[" not in ans:
+        if "[" not in ans or not chunks:
             continue
         ids = [c["chunk_id"] for c in chunks]
         base = {"question": g["question"], "chunk_ids": ids, "golden_id": g["id"]}
@@ -201,7 +202,12 @@ def citation_cases(rng: random.Random) -> list[dict]:
             if len(sents) < 2:
                 out.append({**base, "category": "valid", "label": "valid", "answer": ans})
                 continue
-            i = rng.randrange(len(sents))
+            # Prose sentences only: a table row has no sentence structure once its marker is gone.
+            ok = [k for k, x in enumerate(sents) if re.search(r"\[\d+\]\.$", x.strip()) and len(x.split()) >= 8 and "|" not in x]
+            if not ok:
+                out.append({**base, "category": "valid", "label": "valid", "answer": ans})
+                continue
+            i = rng.choice(ok)
             sents[i] = re.sub(r"\s*\[\d+\]", "", sents[i])
             out.append({**base, "category": "one_uncited", "label": "invalid", "answer": " ".join(sents)})
     for i, row in enumerate(out, 1):

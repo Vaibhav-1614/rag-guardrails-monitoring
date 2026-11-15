@@ -20,6 +20,8 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: true
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -28,7 +30,8 @@ jobs:
       - uses: actions/cache@v4
         with:
           path: models
-          key: lsa-${{ hashFiles('data/index/MANIFEST.json', 'src/rag/embedder.py') }}
+          key: lsa-${{ hashFiles('.gitmodules', 'src/rag/embedder.py') }}-${{ github.sha }}
+          restore-keys: lsa-
       - run: pip install -r requirements-dev.txt
       - run: ruff check .
       - run: pytest
@@ -47,6 +50,8 @@ jobs:
       monitor: ${{ steps.filter.outputs.monitor }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: true
       - uses: dorny/paths-filter@v3
         id: filter
         with:
@@ -74,6 +79,8 @@ jobs:
       GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: true
       - uses: actions/setup-python@v5
         with: { python-version: "3.12", cache: pip }
       - run: pip install -r requirements-dev.txt
@@ -93,12 +100,14 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: true
       - uses: actions/setup-python@v5
         with: { python-version: "3.12", cache: pip }
       - run: pip install -r requirements-dev.txt
       - run: python -m monitor.validate_detectors
 
-  # Model-backed guards (bge, DeBERTa injection classifier, NLI cross-encoder, spaCy NER). Informational
+  # Model-backed backends (upstream re-ranker, bge, DeBERTa injection classifier, NLI cross-encoder, spaCy NER). Informational
   # until their numbers are reviewed; run on demand.
   ml-guards:
     if: github.event_name == 'workflow_dispatch'
@@ -106,6 +115,8 @@ jobs:
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: true
       - uses: actions/setup-python@v5
         with: { python-version: "3.12", cache: pip }
       - uses: actions/cache@v4

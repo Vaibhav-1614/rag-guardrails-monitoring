@@ -17,7 +17,6 @@ from rag.text import content_terms, split_sentences, stem
 
 CITE = re.compile(r"\[(\d+(?:\s*[,\-–]\s*\d+)*)\]")
 _HAS_NUMBER = re.compile(r"\d")
-_FILLER = re.compile(r"^(?:in summary|overall|in short|however|additionally|note|according to the (?:10-k|filing))\b", re.I)
 
 
 def cited_ids(sentence: str) -> list[int]:
@@ -36,7 +35,7 @@ def strip_citations(text: str) -> str:
     return re.sub(r"\s*" + CITE.pattern, "", text)
 
 
-_FRAMING = re.compile(r"^(?:here(?:'s| is| are)|based on (?:the|these) (?:chunks|filings?|excerpts)|in summary|to summarize|overall|in short|"
+_FRAMING = re.compile(r"^(?:here(?:'s| is| are)|based on (?:the|these) (?:chunks|filings?|excerpts)|"
                       r"note that|i (?:couldn't|could not|cannot|can't)|the (?:filing|10-k|chunks?) (?:does|do) not)\b", re.I)
 
 
@@ -59,7 +58,7 @@ def is_claim(sentence: str, strict: bool = True) -> bool:
 
 
 def claim_sentences(answer: str, strict: bool = True) -> list[str]:
-    return [s for s in split_sentences(answer) if is_claim(s, strict) and not _FILLER.match(s.strip())]
+    return [s for s in split_sentences(answer) if is_claim(s, strict)]
 
 
 def strip_uncited(answer: str, strict: bool = True) -> str:
@@ -81,7 +80,7 @@ class CitationGuard(BaseGuard):
         strict = self.config.get("claims", "strict") == "strict"
         sentences = split_sentences(answer)
         invalid = sorted({i for s in sentences for i in cited_ids(s) if not 1 <= i <= n_chunks})
-        claims = [s for s in sentences if is_claim(s, strict) and not _FILLER.match(s.strip())]
+        claims = [s for s in sentences if is_claim(s, strict)]
         uncited = [s for s in claims if not cited_ids(s)]
         low_overlap = []
         for s in claims:

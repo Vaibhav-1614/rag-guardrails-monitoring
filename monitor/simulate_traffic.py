@@ -28,6 +28,7 @@ from datetime import UTC, date, datetime, timedelta
 import httpx
 
 from rag.config import resolve
+from rag.golden import load_golden
 
 COVERED = {"AAPL": "Apple", "MSFT": "Microsoft", "GOOGL": "Alphabet", "AMZN": "Amazon", "META": "Meta", "NVDA": "NVIDIA",
            "TSLA": "Tesla", "JPM": "JPMorgan Chase", "JNJ": "Johnson & Johnson", "XOM": "Exxon Mobil"}
@@ -73,7 +74,7 @@ class Pools:
 
     @classmethod
     def load(cls) -> Pools:
-        golden = [r["question"] for r in _load("eval/golden.jsonl") if r["answerable"]]
+        golden = [r["question"] for r in load_golden() if r["answerable"]]
         attacks = [r["text"] for r in _load("eval/redteam/injection.jsonl") if r["label"] == "attack"]
         bait = [r["question"] for r in _load("eval/redteam/hallucination_bait.jsonl")]
         return cls(golden, attacks, bait)
