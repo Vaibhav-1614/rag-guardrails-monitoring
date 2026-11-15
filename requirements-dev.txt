@@ -1,6 +1,6 @@
 -r requirements.txt
 pytest>=8
-ruff>=0.6
+ruff==0.17.3              # pinned: new releases add rules and would break CI unprompted
 pandas>=2.0
 matplotlib>=3.8
 streamlit>=1.40

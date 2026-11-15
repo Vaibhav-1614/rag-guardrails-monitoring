@@ -10,6 +10,7 @@ numpy>=1.26
 scipy>=1.11
 scikit-learn>=1.4
 joblib>=1.4
+rank-bm25>=0.2.2          # imported by the upstream retriever module (v1 index code path)
 snowballstemmer>=2.2      # stemming for the upstream v2 BM25 index
 wordfreq>=3.1
 presidio-analyzer>=2.2.355
