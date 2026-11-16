@@ -39,6 +39,11 @@ c = svc.c
 st.caption(f"{len(c.corpus)} chunks from 10 filings · embedder `{c.embedder.name}` · generator `{c.generator.provider}` · "
            f"guards `{c.pipeline.version}`")
 
+def _plain(text: str) -> str:
+    """Escape dollar signs: Streamlit renders `$...$` as LaTeX, which garbles "$34,550 million ($34.55 billion)"."""
+    return (text or "").replace("$", r"\$")
+
+
 left, right = st.columns([3, 1])
 with right:
     example = st.selectbox("Examples", ["(type your own)", *EXAMPLES])
@@ -52,7 +57,7 @@ if go and q.strip():
     status_color = {"answered": "green", "refused": "orange", "fallback": "orange", "error": "red"}[r.status]
     st.markdown(f"**Status:** :{status_color}[{r.status}]" + (f" · reason `{r.refusal_reason}`" if r.refusal_reason else "")
                 + (" · regenerated" if r.regenerated else "") + (f" · flags {r.flags}" if r.flags else ""))
-    st.info(r.answer)
+    st.info(_plain(r.answer))
     rows = []
     for g in r.guards:
         rows.append({"guard": g.guard, "stage": g.stage, "mode": g.mode, "passed": g.passed, "action": g.action,
@@ -68,5 +73,5 @@ if go and q.strip():
         st.subheader("Retrieved chunks")
         for ch in r.chunks:
             with st.expander(f"[{ch.n}] {ch.ticker} · {ch.section} · relevance {ch.relevance}"):
-                st.write(ch.text)
+                st.write(_plain(ch.text))
     st.caption(f"Latency: {r.latency_ms}")
