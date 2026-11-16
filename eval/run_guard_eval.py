@@ -545,7 +545,7 @@ def lookup(report: dict, dotted: str) -> Any:
 
 
 def check_gates(report: dict, gates_path: Path) -> list[dict]:
-    gates = yaml.safe_load(gates_path.read_text())["gates"]
+    gates = yaml.safe_load(gates_path.read_text(encoding="utf-8"))["gates"]
     out = []
     for name, g in gates.items():
         try:
@@ -688,8 +688,8 @@ def main() -> int:
         failed = [g for g in rep["gates"] if g["status"] in ("fail", "missing")]
     args.out.mkdir(parents=True, exist_ok=True)
     tag = Path(args.config).stem + ("" if args.split == "all" else f"_{args.split}")
-    (args.out / f"guard_eval_{tag}.json").write_text(json.dumps(rep, indent=2, default=float) + "\n")
-    (args.out / f"guard_eval_{tag}.md").write_text(to_markdown(rep))
+    (args.out / f"guard_eval_{tag}.json").write_text(json.dumps(rep, indent=2, default=float) + "\n", encoding="utf-8")
+    (args.out / f"guard_eval_{tag}.md").write_text(to_markdown(rep), encoding="utf-8")
     if not args.no_plots:
         plot(rep, args.plots)
     print(to_markdown(rep))

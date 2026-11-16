@@ -255,9 +255,9 @@ def to_markdown(rep: dict) -> str:
 def write_report(rep: dict, out_dir: str | Path) -> Path:
     out = resolve(out_dir)
     out.mkdir(parents=True, exist_ok=True)
-    (out / f"{rep['as_of']}.json").write_text(json.dumps(rep, indent=1))
-    (out / f"{rep['as_of']}.md").write_text(to_markdown(rep))
-    (out / "latest.json").write_text(json.dumps(rep, indent=1))
+    (out / f"{rep['as_of']}.json").write_text(json.dumps(rep, indent=1), encoding="utf-8")
+    (out / f"{rep['as_of']}.md").write_text(to_markdown(rep), encoding="utf-8")
+    (out / "latest.json").write_text(json.dumps(rep, indent=1), encoding="utf-8")
     return out / f"{rep['as_of']}.md"
 
 

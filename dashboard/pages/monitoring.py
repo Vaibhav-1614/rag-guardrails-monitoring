@@ -21,7 +21,7 @@ if not sources:
 if not prod:
     st.info("No production reports in this checkout (traffic is low); showing drift detectors validated against simulated scenarios.")
 label = st.selectbox("Report", list(sources), index=len(prod) - 1 if prod else 0)
-rep = json.loads(sources[label].read_text())
+rep = json.loads(sources[label].read_text(encoding="utf-8"))
 
 st.caption(f"as of {rep['as_of']} · env `{rep['env']}` · window {rep['window'][0]}..{rep['window'][1]} ({rep['n_window']} requests) · "
            f"reference `{rep['reference']['version']}` · embedder `{rep['embedder']}`")

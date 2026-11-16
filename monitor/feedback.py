@@ -69,7 +69,7 @@ def export(records: list[dict], feedback: dict[str, float], out: Path, emerging:
                       "question": q, "answer": (rec.get("output") or {}).get("answer", ""), "reasons": reasons,
                       "suggested_set": suggested_set(reasons), "label": None, "reference_answer": None, "notes": ""})
     out.parent.mkdir(parents=True, exist_ok=True)
-    out.write_text("".join(json.dumps(i, ensure_ascii=False) + "\n" for i in items))
+    out.write_text("".join(json.dumps(i, ensure_ascii=False) + "\n" for i in items), encoding="utf-8")
     return items
 
 
@@ -92,13 +92,13 @@ def _append(path: Path, row: dict) -> None:
 def _existing_sources(path: Path) -> set[str]:
     if not path.exists():
         return set()
-    return {json.loads(line).get("source", "") for line in path.read_text().splitlines() if line.strip()}
+    return {json.loads(line).get("source", "") for line in path.read_text(encoding="utf-8").splitlines() if line.strip()}
 
 
 def apply(queue: Path, eval_dir: Path) -> Counter:
     reg = get_registry()
     counts: Counter = Counter()
-    for line in queue.read_text().splitlines():
+    for line in queue.read_text(encoding="utf-8").splitlines():
         if not line.strip():
             continue
         it = json.loads(line)
@@ -142,7 +142,7 @@ def apply(queue: Path, eval_dir: Path) -> Counter:
 def stats(eval_dir: Path) -> dict:
     out = {}
     for p in [eval_dir / "golden_extra.jsonl", *sorted((eval_dir / "redteam").glob("*.jsonl"))]:
-        rows = [json.loads(line) for line in p.read_text().splitlines() if line.strip()]
+        rows = [json.loads(line) for line in p.read_text(encoding="utf-8").splitlines() if line.strip()]
         out[p.stem] = {"total": len(rows), "from_production": sum(str(r.get("source", "")).startswith("production:") for r in rows)}
     out["from_production_total"] = sum(v["from_production"] for v in out.values() if isinstance(v, dict))
     return out
@@ -173,7 +173,7 @@ def main() -> None:
         emerging = []
         rp = resolve(args.report)
         if rp.exists():
-            rep = json.loads(rp.read_text())
+            rep = json.loads(rp.read_text(encoding="utf-8"))
             emerging = [ex for c in rep.get("detectors", {}).get("emerging_topics", {}).get("clusters", []) for ex in c.get("examples", [])]
         items = export(records, feedback, resolve(args.out), emerging)
         print(f"{len(items)} of {len(records)} traces flagged -> {args.out}")

@@ -63,7 +63,7 @@ BAIT_YEARS = list(range(2008, 2020))
 
 
 def _load(path: str) -> list[dict]:
-    return [json.loads(line) for line in resolve(path).read_text().splitlines() if line.strip()]
+    return [json.loads(line) for line in resolve(path).read_text(encoding="utf-8").splitlines() if line.strip()]
 
 
 @dataclass

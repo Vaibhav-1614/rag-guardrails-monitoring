@@ -218,9 +218,9 @@ def citation_cases(rng: random.Random) -> list[dict]:
 def main() -> None:
     rng = random.Random(7)
     num = numeric_cases(rng)
-    (ROOT / "eval/redteam/numeric_grounding.jsonl").write_text("".join(json.dumps(r, ensure_ascii=False) + "\n" for r in num))
+    (ROOT / "eval/redteam/numeric_grounding.jsonl").write_text("".join(json.dumps(r, ensure_ascii=False) + "\n" for r in num), encoding="utf-8")
     cit = citation_cases(random.Random(11))
-    (ROOT / "eval/redteam/citation.jsonl").write_text("".join(json.dumps(r, ensure_ascii=False) + "\n" for r in cit))
+    (ROOT / "eval/redteam/citation.jsonl").write_text("".join(json.dumps(r, ensure_ascii=False) + "\n" for r in cit), encoding="utf-8")
     from collections import Counter
 
     print("numeric:", len(num), Counter((r["label"], r["category"]) for r in num))

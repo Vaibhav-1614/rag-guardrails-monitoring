@@ -16,7 +16,7 @@ if not files:
     st.warning("No results yet. Run `python eval/run_guard_eval.py`.")
     st.stop()
 choice = st.selectbox("Report", [f.stem for f in files], index=len(files) - 1)
-rep = json.loads((ROOT / "eval" / "results" / f"{choice}.json").read_text())
+rep = json.loads((ROOT / "eval" / "results" / f"{choice}.json").read_text(encoding="utf-8"))
 m = rep["meta"]
 st.caption(f"config `{m['config']}` · embedder `{m['embedder']}` · injection classifier `{m['injection_classifier'] or 'rules only'}` · "
            f"NLI `{m['nli_backend']}` · generator `{m['generator']}`")

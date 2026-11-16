@@ -111,13 +111,13 @@ def main() -> int:
             entry["nightly_false_alarms"] = sum(bool(n["fired"]) for n in nightly)
         results[scenario] = entry
         series[scenario] = {"daily": rep["daily"], "golden": [{"day": x.get("simulated_day"), **x["metrics"]} for x in golden]}
-        (out_reports / f"{scenario}.json").write_text(json.dumps(rep, indent=1))
+        (out_reports / f"{scenario}.json").write_text(json.dumps(rep, indent=1), encoding="utf-8")
         print(f"{scenario:24s} fired={sorted(fired)} expected={sorted(EXPECTED[scenario])} ({time.perf_counter() - t:.0f}s)", flush=True)
 
     ok = all(not r["missing"] and not r["false_alarms_before_onset"] for r in results.values())
     summary = {"ok": ok, "reference": reference.description, "per_day": args.per_day, "days": DAYS,
                "embedder": svc.c.embedder.name, "results": results}
-    (ROOT / "monitor" / "validation" / "results.json").write_text(json.dumps(summary, indent=1))
+    (ROOT / "monitor" / "validation" / "results.json").write_text(json.dumps(summary, indent=1), encoding="utf-8")
     write_markdown(summary)
     plot(series)
     print("detector validation:", "PASS" if ok else "FAIL", f"({time.perf_counter() - t0:.0f}s)")
@@ -153,7 +153,7 @@ def write_markdown(summary: dict) -> None:
     for s, r in res.items():
         if r["alerts"]:
             lines.append(f"- **{s}**: " + "; ".join(f"{a['detector']}/{a['metric']}={a['value']}" for a in r["alerts"][:6]))
-    (ROOT / "docs" / "drift_validation.md").write_text("\n".join(lines) + "\n")
+    (ROOT / "docs" / "drift_validation.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
 def plot(series: dict) -> None:
